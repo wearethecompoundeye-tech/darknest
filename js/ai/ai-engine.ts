@@ -1,6 +1,18 @@
-// js/ai/ai-engine.ts – AI engine (mock for now)
+// js/ai/ai-engine.ts – AI engine (mocked for development)
 
 export async function askOllama(messages: { role: string; content: string }[]): Promise<string> {
-  // MOCK for testing – no Ollama needed
   return "I hear you, Acolyte. The shadows listen.";
+}
+
+export function narrateEvent(event: string): string {
+  return "Something stirs in the Undercrypt...";
+}
+
+// Add any other exports that the scanner finds, e.g.:
+export async function getKalgothAction(state: any, player: any, enemy: any): Promise<{ banter: string }> {
+  return { banter: "A distant, mocking laugh echoes." };
+}
+
+export function generateTaunt(): string {
+  return "Kalgoth watches.";
 }

@@ -1,0 +1,482 @@
+// js/main.ts
+// Application entry point for Kalgoth's Gaze
+// Fully integrated with all systems, tutorial, Gaze event, event bus, and state guards.
+
+import { effect } from '@preact/signals-core';
+import {
+  state,
+  legacyState,
+  updateState,
+  autoSave,
+  loadSaveData,
+  CONSTANTS,
+  circleQuality,
+  tutorial,
+  playerName,
+  lastForageTime,
+  health,
+  will,
+  maxWill,
+  orbexFragments,
+  orbexBoons,
+  maxWill as maxWillSignal,
+  mazePathsUnlocked,
+  setAddLog,
+  ownedCards,
+  equippedEntitySlots,
+  kalgothsNoose,
+  circlePower,
+  circleMastery,
+  ingredients,
+  activeDemon,
+  addCard,
+} from './core/state-signals.js';
+import { initSaveSystem } from './core/persistence.js';
+import { setupUIEffects, updateUI, updateRuneSlots, initOrbitAnimation, triggerScreenPulse } from './ui/ui-renderer.js';
+import { initTutorial, checkTutorialProgress, getContextualHint, showTutorialPopup, openWhispStats, setTutorialEnabled, isTutorialEnabled } from './ui/tutorial.js';
+import { addLog, clearLog } from './ui/log-manager.js';
+import { openTome } from './ui/tome.js';
+import { openSatchel } from './ui/satchel.js';
+import { openGrimoire } from './ui/grimoire.js';
+import { showSaveSlots } from './ui/save-slots.js';
+import { initWhispChat, toggleWhispChat, addMessage } from './ui/whisp-chat.js';
+import { initPlugins } from './plugins/plugin-interface.js';
+import { initLocale, t } from './core/localisation.js';
+import { initCircleTracing } from './minigames/circle-trace.js';
+import { startRuneTracing } from './minigames/rune-etch.js';
+import { craftPowder, craftPotion, craftRestorative, studyRune, quickCraftPowder, quickCraftPhial } from './systems/crafting.js';
+import { summonEntity, captureDemon, banishDemon, collectAsh, releaseCapturedDemon } from './systems/summoning.js';
+import { showPathSelectionModal, setUnlockBoonCallback } from './systems/maze-system.js';
+import { payTithe, attemptEscape, initDayCycle } from './systems/day-cycle.js';
+import { petFamiliar, forage } from './systems/familiar-manager.js';
+import { talkToDemon } from './ui/demon-modal.js';
+import { initAudio, playSfx, startLoop, stopAllLoops, toggleSfx, updateVolumes, toggleMusic, getSound } from './audio/sfx.js';
+import { updateAmbience, stopAllAmbience } from './audio/ambience-manager.js';
+import { whispSay, setupWhispReactions, setWhispEnabled, isWhispEnabled } from './ui/whisp-commentary.js';
+import { testOllamaConnection } from './ai/ai-engine.js';
+import { el } from './core/dom-helper.js';
+import { renderSettingsContent } from './ui/settings-panel.js';
+import { gameBus } from './core/eventBus.js';
+import { GameEvents, type SummonVictoryPayload, type TithePaidPayload, type GazeSurvivedPayload, type GazeDefeatPayload, type FragmentCollectedPayload } from './core/events.js';
+import { ModalManager } from './ui/modal-manager.js';
+import { initTutorialListeners } from './systems/tutorial-listeners.js';
+import { currentPhase, transition, type GameEvent } from './core/gameReducer.js';
+
+setAddLog(addLog as (msg: string, isErr?: boolean, speaker?: string) => void);
+(window as any).state = state;
+
+setupUIEffects();
+setupWhispReactions();
+
+// Phase display effect
+effect(() => {
+  const el = document.getElementById('phaseDisplay');
+  if (el) el.textContent = `Status: ${currentPhase.value.status}`;
+});
+
+initTutorialListeners();
+
+effect(() => {
+  checkTutorialProgress();
+  updateAmbience();
+});
+
+let sfxEnabled = true;
+let musicEnabled = true;
+let masterVol = 0.7;
+let sfxVol = 0.7;
+let musicVol = 0.4;
+let willRegenInterval: number | null = null;
+let lastFragmentCount = 0;
+
+function safeAttach(id: string, event: string, handler: EventListener): void {
+  const element = el(id);
+  if (element) element.addEventListener(event, handler);
+}
+
+function setupModalClosers(): void {
+  document.querySelectorAll(".close-modal").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const modal = (btn as HTMLElement).closest('.modal') as HTMLElement;
+      if (modal) {
+        modal.style.display = "none";
+        stopAllLoops();
+      }
+    });
+  });
+  window.addEventListener("click", e => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('modal')) {
+      target.style.display = "none";
+      stopAllLoops();
+    }
+  });
+}
+
+function updateForageCooldown(): void {
+  const remaining = Math.max(0, CONSTANTS.FORAGE_COOLDOWN - (Date.now() - lastForageTime.value));
+  const cd = el("forageCooldown");
+  const btn = el("forageBtn") as HTMLButtonElement | null;
+  if (cd) cd.innerText = remaining > 0 ? `Cooldown: ${Math.ceil(remaining / 1000)}s` : "";
+  if (btn) btn.disabled = remaining > 0;
+}
+
+function updateSettingsUI(): void {
+  const masterSlider = el("masterVolumeSlider") as HTMLInputElement | null;
+  const sfxSlider = el("sfxVolumeSlider") as HTMLInputElement | null;
+  const musicSlider = el("musicVolumeSlider") as HTMLInputElement | null;
+  if (masterSlider) masterSlider.value = masterVol.toString();
+  if (sfxSlider) sfxSlider.value = sfxVol.toString();
+  if (musicSlider) musicSlider.value = musicVol.toString();
+
+  const masterLabel = el("masterVolLabel");
+  if (masterLabel) masterLabel.innerText = Math.round(masterVol * 100) + "%";
+  const sfxLabel = el("sfxVolLabel");
+  if (sfxLabel) sfxLabel.innerText = Math.round(sfxVol * 100) + "%";
+  const musicLabel = el("musicVolLabel");
+  if (musicLabel) musicLabel.innerText = Math.round(musicVol * 100) + "%";
+
+  const muteSfxBtn = el("muteSfxBtn");
+  if (muteSfxBtn) muteSfxBtn.textContent = sfxEnabled ? "🔊 SFX ON" : "🔇 SFX OFF";
+  const muteMusicBtn = el("muteMusicBtn");
+  if (muteMusicBtn) muteMusicBtn.textContent = musicEnabled ? "🎵 MUSIC ON" : "🔇 MUSIC OFF";
+  
+  const whispBtn = el("toggleWhispBtn");
+  if (whispBtn) whispBtn.textContent = isWhispEnabled() ? "👁️ Whisp ON" : "👁️ Whisp OFF";
+  const tutorialBtn = el("toggleTutorialBtn");
+  if (tutorialBtn) tutorialBtn.textContent = isTutorialEnabled() ? "📖 Tutorial ON" : "📖 Tutorial OFF";
+}
+
+function applyVolumeSettings(): void {
+  updateVolumes(masterVol, sfxVol, musicVol);
+}
+
+function toggleSfxMute(): void {
+  sfxEnabled = !sfxEnabled;
+  toggleSfx(sfxEnabled);
+  updateSettingsUI();
+}
+
+function toggleMusicMute(): void {
+  musicEnabled = !musicEnabled;
+  toggleMusic(musicEnabled);
+  updateSettingsUI();
+}
+
+function toggleWhisp(): void {
+  const enabled = !isWhispEnabled();
+  setWhispEnabled(enabled);
+  updateSettingsUI();
+}
+
+function toggleTutorial(): void {
+  const enabled = !isTutorialEnabled();
+  setTutorialEnabled(enabled);
+  updateSettingsUI();
+  if (enabled) {
+    showTutorialPopup(tutorial.value.currentStep);
+  }
+}
+
+function saveGame(): void {
+  autoSave();
+  addLog("Game saved.", false, 'system');
+  playSfx('uiClick');
+}
+
+function loadGame(): void {
+  const data = localStorage.getItem("kalgothGazeOrbitSave");
+  if (data) {
+    loadSaveData(JSON.parse(data));
+    addLog("Game loaded.", false, 'system');
+    if (activeDemon.value && !activeDemon.value.name) {
+      activeDemon.value = null;
+    }
+    updateUI();
+
+
+  initSaveSystem().then(() => console.log('Save system ready'));
+  } else {
+    addLog("No save found.", true);
+  }
+  playSfx('uiClick');
+}
+
+function startWillRegen(): void {
+  if (willRegenInterval) clearInterval(willRegenInterval);
+  willRegenInterval = window.setInterval(() => {
+    if (will.value < maxWill.value && health.value > 0) {
+      updateState(() => {
+        will.value = Math.min(maxWill.value, will.value + 1);
+      });
+    }
+  }, 8000);
+}
+
+function showCaptureJar(): void {
+  openGrimoire();
+}
+
+function handleBoonUnlock(): void {
+  const boons = [
+    { id: 'will', name: 'Orbex Vitality', effect: '+10 max Will' },
+    { id: 'synthesis', name: 'Essence Synthesis', effect: 'Passive Moss generation' },
+    { id: 'vision', name: 'Orbex Vision', effect: 'Reveals hidden paths' },
+    { id: 'resistance', name: 'Ward Resistance', effect: '-20% ward chance' }
+  ];
+  const fragmentCount = orbexFragments.value;
+  if (fragmentCount > 0 && fragmentCount <= boons.length) {
+    const newBoon = boons[fragmentCount - 1];
+    if (!orbexBoons.value.includes(newBoon.id)) {
+      updateState(() => {
+        orbexBoons.value = [...orbexBoons.value, newBoon.id];
+        if (newBoon.id === 'will') maxWillSignal.value += 10;
+        if (newBoon.id === 'resistance') mazePathsUnlocked.value = [...mazePathsUnlocked.value, 'Collapsed'];
+      });
+      addLog(`🌟 Orbex Boon Unlocked: ${newBoon.name} - ${newBoon.effect}`, false, 'orbex');
+      playSfx('Boon_Unlock');
+      whispSay(`I feel new power. ${newBoon.effect}. Don't waste it.`);
+      triggerScreenPulse('#d4af37');
+    }
+  }
+}
+
+function enterMaze(): void {
+  if (will.value < 5) {
+    addLog("Not enough Will (5 required).", true);
+    return;
+  }
+  if (ingredients.value.demonIchor < 2) {
+    addLog("Not enough Ichor (2 required).", true);
+    return;
+  }
+  updateState(() => {
+    will.value -= 5;
+    ingredients.value = { ...ingredients.value, demonIchor: ingredients.value.demonIchor - 2 };
+  });
+  showPathSelectionModal();
+}
+
+// Event bus setup
+const modalManager = new ModalManager();
+(window as any).modalManager = modalManager;
+(window as any).gameBus = gameBus;
+(window as any).currentPhase = currentPhase;
+(window as any).transition = transition;
+
+// Summon victory listener – Noose reduction
+gameBus.on<SummonVictoryPayload>(GameEvents.SUMMON_VICTORY, (payload) => {
+  kalgothsNoose.value = Math.max(0, kalgothsNoose.value - 5);
+});
+
+// Test listeners for event bus
+gameBus.on<TithePaidPayload>(GameEvents.TITHE_PAID, (p) => {});
+gameBus.on<GazeSurvivedPayload>(GameEvents.GAZE_SURVIVED, (p) => {});
+gameBus.on<GazeDefeatPayload>(GameEvents.GAZE_DEFEAT, () => {});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const splash = el('splashScreen');
+  const gameContainer = el('gameContainer');
+  const splashLogo = el('splashLogo') as HTMLImageElement | null;
+  let splashMusic: Howl | undefined = undefined;
+  let musicStarted = false;
+
+  if (splash) {
+    splash.addEventListener('click', () => {
+      if (splashLogo) splashLogo.style.transform = 'scale(1.1)';
+      if (!musicStarted) {
+        try {
+          splashMusic = getSound('splashMusic');
+          if (splashMusic) {
+            splashMusic.play();
+            splashMusic.fade(0, splashMusic.volume(), 0);
+            splashMusic.fade(splashMusic.volume(), 0, 3000);
+          }
+        } catch (e) {
+          console.warn('Splash music not loaded');
+        }
+        musicStarted = true;
+      }
+      splash.style.transition = 'opacity 3s ease';
+      splash.style.opacity = '0';
+      if (gameContainer) {
+        gameContainer.style.display = 'block';
+        gameContainer.style.opacity = '0';
+        setTimeout(() => {
+          gameContainer.style.transition = 'opacity 3s ease';
+          gameContainer.style.opacity = '1';
+          initDayCycle();
+        }, 50);
+      }
+      setTimeout(() => {
+        splash.style.display = 'none';
+        if (splashMusic) splashMusic.stop();
+        whispSay("Finally. I thought you'd stare at that forever.");
+      }, 3000);
+    });
+  }
+
+  // initTutorial(); // Replaced by Zilion chat
+  initWhispChat();
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'w' || e.key === 'W') {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        return;
+      }
+      console.log('[Zilion] Chat toggle');
+      toggleWhispChat();
+    }
+  }, true);
+  addMessage('zelion', 'Welcome, Acolyte. I am Zilion, a shard of Orbex stuck in your skull. Press W whenever you need guidance.');
+  import { getSlotList } from './core/persistence.js';
+  getSlotList().then(slots => {
+    if (slots.length > 0) {
+      showSaveSlots(() => { console.log('Game started from save slot'); });
+    } else {
+      console.log('No saves found – starting new game');
+      setCurrentSlot('autosave');
+    }
+  });
+  initLocale('en');
+  initPlugins().then(() => console.log('Plugins ready'));
+  setUnlockBoonCallback(handleBoonUnlock);
+  lastFragmentCount = orbexFragments.value;
+
+  if (ownedCards.value.length === 0) {
+    addCard('umbral_mite', 1);
+    addCard('ember_hound', 1);
+    addCard('stone_warden', 1);
+    addCard('void_gaze', 1);
+    addCard('ember_burst', 1);
+    addCard('iron_will', 1);
+    addCard('void_spring', 1);
+  }
+
+  safeAttach("craftPowderBtn", "click", () => { playSfx('uiClick'); craftPowder(); });
+  safeAttach("craftPotionBtn", "click", () => { playSfx('uiClick'); craftPotion(true); });
+  safeAttach("craftRestorativeBtn", "click", () => { playSfx('uiClick'); craftRestorative(); });
+  safeAttach("studyRuneBtn", "click", () => { playSfx('uiClick'); studyRune(); });
+  safeAttach("traceRuneBtn", "click", () => { playSfx('uiClick'); startRuneTracing(); });
+  safeAttach("quickCraftPowderBtn", "click", () => { playSfx('uiClick'); quickCraftPowder(); });
+  safeAttach("quickCraftPhialBtn", "click", () => { playSfx('uiClick'); quickCraftPhial(); });
+
+  safeAttach("summonBtn", "click", summonEntity);
+  safeAttach("titheBtn", "click", payTithe);
+  safeAttach("escapeBtn", "click", attemptEscape);
+  safeAttach("ashPileArea", "click", collectAsh);
+  safeAttach("mazeEntranceBtn", "click", enterMaze);
+
+  safeAttach("petFamiliarBtn", "click", petFamiliar);
+  safeAttach("forageBtn", "click", forage);
+  safeAttach("tutorialBtn", "click", () => showTutorialPopup(tutorial.value.currentStep));
+  safeAttach("talkToDemonBtn", "click", talkToDemon);
+
+  safeAttach("tomeIcon", "click", openTome);
+  safeAttach("satchelIcon", "click", openSatchel);
+  safeAttach("settingsIcon", "click", () => {
+    updateSettingsUI();
+    renderSettingsContent();
+    const modal = el("settingsModal");
+    if (modal) modalManager.open(modal);
+  });
+  safeAttach("captureJar", "click", showCaptureJar);
+  safeAttach("hintButton", "click", () => addLog(getContextualHint(), false, 'whisp'));
+
+  safeAttach("masterVolumeSlider", "input", e => {
+    masterVol = parseFloat((e.target as HTMLInputElement).value);
+    applyVolumeSettings();
+    updateSettingsUI();
+  });
+  safeAttach("sfxVolumeSlider", "input", e => {
+    sfxVol = parseFloat((e.target as HTMLInputElement).value);
+    applyVolumeSettings();
+    updateSettingsUI();
+  });
+  safeAttach("musicVolumeSlider", "input", e => {
+    musicVol = parseFloat((e.target as HTMLInputElement).value);
+    applyVolumeSettings();
+    updateSettingsUI();
+  });
+  safeAttach("muteSfxBtn", "click", toggleSfxMute);
+  safeAttach("muteMusicBtn", "click", toggleMusicMute);
+  safeAttach("toggleWhispBtn", "click", toggleWhisp);
+  safeAttach("toggleTutorialBtn", "click", toggleTutorial);
+  safeAttach("settingsSaveBtn", "click", saveGame);
+  safeAttach("settingsLoadBtn", "click", loadGame);
+
+  safeAttach("traceCircleBtn", "click", () => {
+    initCircleTracing();
+    playSfx('uiClick');
+  });
+
+  const toggleCrafting = el("toggleCraftingBtn");
+  const craftingContent = el("craftingContent");
+  if (toggleCrafting && craftingContent) {
+    toggleCrafting.addEventListener("click", () => {
+      craftingContent.classList.toggle("collapsed");
+      toggleCrafting.classList.toggle("collapsed");
+    });
+  }
+  const toggleRitual = el("toggleRitualBtn");
+  const ritualContent = el("ritualContent");
+  if (toggleRitual && ritualContent) {
+    toggleRitual.addEventListener("click", () => {
+      ritualContent.classList.toggle("collapsed");
+      toggleRitual.classList.toggle("collapsed");
+    });
+  }
+  const toggleStats = el("toggleStatsBtn");
+  const statsContent = el("playerStatsContent");
+  if (toggleStats && statsContent) {
+    toggleStats.addEventListener("click", () => {
+      statsContent.classList.toggle("collapsed");
+      toggleStats.classList.toggle("collapsed");
+    });
+  }
+  const toggleBandolier = el("toggleBandolierBtn");
+  const bandolierContent = el("bandolierContent");
+  if (toggleBandolier && bandolierContent) {
+    toggleBandolier.addEventListener("click", () => {
+      bandolierContent.classList.toggle("collapsed");
+      toggleBandolier.classList.toggle("collapsed");
+    });
+  }
+
+  setupModalClosers();
+
+  const playerNameDisplay = el("playerNameDisplay");
+  if (playerNameDisplay) playerNameDisplay.innerText = playerName.value;
+  addLog(`The acolytes call you "${playerName.value}". The Seed of Orbex pulses.`, false, 'orbex');
+
+  testOllamaConnection().then(c => addLog(c ? "🔮 Orbex whispers... (AI connected)" : "🌑 Orbex is silent. (AI offline)", false, 'orbex'));
+
+  if (activeDemon.value && typeof activeDemon.value === 'object' && !activeDemon.value.name) {
+    activeDemon.value = null;
+  }
+
+  updateUI();
+  initSaveSystem().then(() => console.log('Save system ready'));
+  initCircleTracing();
+  initOrbitAnimation();
+  // initDayCycle(); // Moved to after splash screen click
+  startWillRegen();
+
+  setInterval(updateForageCooldown, 1000);
+  updateSettingsUI();
+
+  if (circleQuality.value > 0) startLoop('circleTraceLoop');
+
+  console.log("✅ Game ready with Card System");
+});
+
+(window as any).payTithe = payTithe;
+(window as any).escapeGame = attemptEscape;
+(window as any).openTome = openTome;
+(window as any).openSatchel = openSatchel;
+(window as any).openGrimoire = openGrimoire;
+(window as any).saveGame = saveGame;
+(window as any).loadGame = loadGame;
+(window as any).talkToDemon = talkToDemon;
+(window as any).showCaptureJar = showCaptureJar;
+(window as any).openWhispStats = openWhispStats;

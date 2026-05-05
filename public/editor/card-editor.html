@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kalgoth's Gaze – Card Editor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0508; color: #e0d8cc; font-family: 'Courier New', monospace; display: flex; height: 100vh; }
+    .panel { padding: 20px; overflow-y: auto; }
+    .left { width: 320px; background: #0e0710; border-right: 1px solid #5a4a3a; }
+    .center { flex: 1; display: flex; flex-direction: column; }
+    .right { width: 320px; background: #0e0710; border-left: 1px solid #5a4a3a; }
+    h2 { color: #d4af37; margin-bottom: 16px; font-size: 1.2rem; }
+    label { display: block; margin: 10px 0 4px; font-size: 0.8rem; color: #a09080; }
+    input, select, textarea { width: 100%; padding: 6px; background: #1a100a; border: 1px solid #5a4a3a; color: #e0d8cc; border-radius: 4px; font-family: inherit; font-size: 0.85rem; }
+    textarea { height: 80px; resize: vertical; }
+    button { padding: 8px 16px; background: #2a1a0a; border: 1px solid #d4af37; color: #e0d8cc; cursor: pointer; border-radius: 8px; font-family: inherit; font-size: 0.85rem; transition: 0.2s; }
+    button:hover { background: #3a2a1a; border-color: #ffd700; }
+    .card-list { display: flex; flex-direction: column; gap: 6px; }
+    .card-list-item { background: #1a100a; border: 1px solid #5a4a3a; border-radius: 8px; padding: 8px 12px; cursor: pointer; transition: 0.2s; font-size: 0.8rem; }
+    .card-list-item:hover { border-color: #d4af37; background: #2a1a0a; }
+    .card-list-item.active { border-color: #ffd700; background: #2a1a0a; }
+    .card-preview { margin: 20px auto; position: relative; width: 250px; aspect-ratio: 3/4; }
+    .card-preview img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+    .card-preview .frame { z-index: 2; pointer-events: none; }
+    .card-preview .art { z-index: 1; }
+    .card-preview .stats { position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 4px; border-radius: 8px; text-align: center; font-size: 0.65rem; z-index: 3; }
+    .error { border-color: #ff4444 !important; }
+    .status { position: fixed; bottom: 20px; right: 20px; background: #1a2a0a; border: 1px solid #7ea04b; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; }
+    .status.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <!-- Left Panel – Card List -->
+  <div class="panel left">
+    <h2>Card List</h2>
+    <div style="margin-bottom:12px; display:flex; gap:8px;">
+      <button onclick="newCard()" style="flex:1;">+ New Card</button>
+      <button onclick="loadCards()" style="flex:1;">↻ Reload</button>
+    </div>
+    <div class="card-list" id="cardList"></div>
+  </div>
+
+  <!-- Center Panel – Editor -->
+  <div class="panel center">
+    <h2>Card Editor</h2>
+    <div style="display:flex; gap:12px;">
+      <div style="flex:1;">
+        <label>ID <input id="cardId" placeholder="cinder_wyrm" onchange="validate()"></label>
+        <label>Name <input id="cardName" placeholder="Cinder Wyrm" onchange="validate()"></label>
+        <label>Type <select id="cardType" onchange="validate()"><option>entity</option><option>spell</option><option>enhancement</option><option>land</option></select></label>
+        <label>Rarity <select id="cardRarity" onchange="validate()"><option>common</option><option>uncommon</option><option>rare</option><option>epic</option><option>legendary</option></select></label>
+        <label>Aspect <input id="cardAspect" placeholder="Fire" onchange="validate()"></label>
+        <label>Image URL <input id="cardImage" placeholder="/Images/Game Art/Creatures/Cinder Wyrm.png"></label>
+        <label>Frame URL <input id="cardFrame" placeholder="/Images/Game Art/Frame Overlays/Uncommon Frame.png"></label>
+      </div>
+      <div style="flex:1;">
+        <label>Stats (JSON) <textarea id="cardStats" onchange="validate()">{ "hp": 8, "atk": 4, "spd": 3, "cun": 1, "def": 2, "res": 10, "init": 3, "loyalty": 75 }</textarea></label>
+        <label>Abilities (JSON) <textarea id="cardAbilities">[{ "name": "Magma Trail", "type": "combat", "effect": "Minions take 1 damage when entering the tile." }]</textarea></label>
+        <label>Combo With (comma-separated IDs) <input id="cardCombo" placeholder="cinder_wyrm, ashen_cherub"></label>
+        <label>Combo Effect <input id="cardComboEffect" placeholder="+1 ATK and +1 HP"></label>
+        <label>Flavor <input id="cardFlavor" placeholder="A wingless drake with obsidian scales..."></label>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button onclick="saveCard()">💾 Save Card</button>
+      <button onclick="deleteCard()" style="background:#5a2a2a; border-color:#8a3a3a;">🗑 Delete</button>
+      <button onclick="exportAll()" style="background:#2a2a4a; border-color:#4a4a8a;">📦 Export All</button>
+    </div>
+  </div>
+
+  <!-- Right Panel – Preview -->
+  <div class="panel right">
+    <h2>Preview</h2>
+    <div class="card-preview" id="cardPreview">
+      <img class="art" id="previewArt" src="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22250%22 height=%22333%22><rect width=%22250%22 height=%22333%22 fill=%22%231c120c%22/><text x=%2210%22 y=%22170%22 fill=%22%23d0c0a0%22>No Image</text></svg>'">
+      <img class="frame" id="previewFrame" src="" onerror="this.style.display='none'">
+      <div class="stats" id="previewStats"></div>
+    </div>
+  </div>
+
+  <div class="status" id="statusMessage"></div>
+
+  <script>
+    let cards = [];
+    let currentCardIndex = -1;
+
+    // ========== Load cards from JSON ==========
+    async function loadCards() {
+      try {
+        const res = await fetch('/data/cards.json');
+        cards = await res.json();
+        renderCardList();
+        showStatus(`${cards.length} cards loaded`, 'success');
+      } catch (e) {
+        showStatus('Failed to load cards.json', 'error');
+      }
+    }
+
+    // ========== Render left panel list ==========
+    function renderCardList() {
+      const list = document.getElementById('cardList');
+      list.innerHTML = '';
+      cards.forEach((card, index) => {
+        const div = document.createElement('div');
+        div.className = 'card-list-item' + (index === currentCardIndex ? ' active' : '');
+        div.textContent = `${card.name} (${card.type}, ${card.rarity})`;
+        div.onclick = () => selectCard(index);
+        list.appendChild(div);
+      });
+    }
+
+    // ========== Select a card ==========
+    function selectCard(index) {
+      currentCardIndex = index;
+      const card = cards[index];
+      document.getElementById('cardId').value = card.id || '';
+      document.getElementById('cardName').value = card.name || '';
+      document.getElementById('cardType').value = card.type || 'entity';
+      document.getElementById('cardRarity').value = card.rarity || 'common';
+      document.getElementById('cardAspect').value = card.aspect || '';
+      document.getElementById('cardImage').value = card.image || '';
+      document.getElementById('cardFrame').value = card.frame || '';
+      document.getElementById('cardStats').value = JSON.stringify(card.stats || {}, null, 2);
+      document.getElementById('cardAbilities').value = JSON.stringify(card.abilities || [], null, 2);
+      document.getElementById('cardCombo').value = card.comboWith ? card.comboWith.join(', ') : '';
+      document.getElementById('cardComboEffect').value = card.comboEffect || '';
+      document.getElementById('cardFlavor').value = card.flavor || '';
+      updatePreview();
+      renderCardList();
+    }
+
+    // ========== New card ==========
+    function newCard() {
+      const newCard = {
+        id: 'new_card_' + Date.now(),
+        name: 'New Card',
+        type: 'entity',
+        rarity: 'common',
+        aspect: 'Void',
+        image: '',
+        frame: '',
+        stats: { hp: 5, atk: 2, spd: 3, cun: 1, def: 0, res: 10, init: 3, loyalty: 70 },
+        abilities: [],
+        comboWith: [],
+        comboEffect: '',
+        flavor: ''
+      };
+      cards.push(newCard);
+      currentCardIndex = cards.length - 1;
+      selectCard(currentCardIndex);
+    }
+
+    // ========== Update preview ==========
+    function updatePreview() {
+      const art = document.getElementById('previewArt');
+      const frame = document.getElementById('previewFrame');
+      const statsDiv = document.getElementById('previewStats');
+      art.src = document.getElementById('cardImage').value;
+      frame.src = document.getElementById('cardFrame').value;
+      try {
+        const stats = JSON.parse(document.getElementById('cardStats').value);
+        if (document.getElementById('cardType').value === 'entity') {
+          statsDiv.innerHTML = `❤️${stats.hp||0} ⚔️${stats.atk||0} 🛡️${stats.def||0} ⚡${stats.init||0}`;
+        } else {
+          statsDiv.innerHTML = document.getElementById('cardRarity').value.toUpperCase();
+        }
+      } catch { statsDiv.innerHTML = ''; }
+    }
+
+    // ========== Save card ==========
+    function saveCard() {
+      if (currentCardIndex < 0) return;
+      try {
+        const stats = JSON.parse(document.getElementById('cardStats').value);
+        const abilities = JSON.parse(document.getElementById('cardAbilities').value || '[]');
+        const comboWith = document.getElementById('cardCombo').value.split(',').map(s => s.trim()).filter(s => s);
+        cards[currentCardIndex] = {
+          ...cards[currentCardIndex],
+          id: document.getElementById('cardId').value,
+          name: document.getElementById('cardName').value,
+          type: document.getElementById('cardType').value,
+          rarity: document.getElementById('cardRarity').value,
+          aspect: document.getElementById('cardAspect').value,
+          image: document.getElementById('cardImage').value,
+          frame: document.getElementById('cardFrame').value,
+          stats: stats,
+          abilities: abilities,
+          comboWith: comboWith,
+          comboEffect: document.getElementById('cardComboEffect').value,
+          flavor: document.getElementById('cardFlavor').value
+        };
+        renderCardList();
+        showStatus('Card saved locally', 'success');
+      } catch (e) {
+        showStatus('Invalid JSON in stats or abilities', 'error');
+      }
+    }
+
+    // ========== Delete card ==========
+    function deleteCard() {
+      if (currentCardIndex < 0) return;
+      if (confirm(`Delete ${cards[currentCardIndex].name}?`)) {
+        cards.splice(currentCardIndex, 1);
+        currentCardIndex = Math.min(currentCardIndex, cards.length - 1);
+        if (currentCardIndex >= 0) selectCard(currentCardIndex);
+        else renderCardList();
+        showStatus('Card deleted', 'success');
+      }
+    }
+
+    // ========== Export all to server ==========
+    async function exportAll() {
+      try {
+        const res = await fetch('/api/save-cards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cards, null, 2)
+        });
+        if (res.ok) showStatus('Cards exported to public/data/cards.json', 'success');
+        else showStatus('Export failed', 'error');
+      } catch (e) {
+        showStatus('Export failed (server may not support save)', 'error');
+      }
+    }
+
+    // ========== Validation ==========
+    function validate() {
+      const required = ['cardId', 'cardName', 'cardType', 'cardRarity', 'cardAspect', 'cardImage', 'cardFrame'];
+      required.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('error', !el.value.trim());
+      });
+      updatePreview();
+    }
+
+    // ========== Status toast ==========
+    function showStatus(msg, type) {
+      const status = document.getElementById('statusMessage');
+      status.textContent = msg;
+      status.className = 'status visible';
+      if (type === 'error') status.style.background = '#4a1a1a';
+      else status.style.background = '#1a2a0a';
+      setTimeout(() => status.className = 'status', 2000);
+    }
+
+    // ========== Init ==========
+    loadCards();
+    // Re-validate on any change
+    document.querySelectorAll('input, select, textarea').forEach(el => el.addEventListener('input', validate));
+  </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kalgoth's Gaze · Undercrypt</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/battle-animations.css">
+    <link rel="stylesheet" href="css/maze-corruption.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:100000; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+        <img id="splashLogo" src="/Images/Game Title.png" alt="Kalgoth's Gaze" style="max-width:80%; max-height:80%; object-fit:contain; transition:transform 3s ease;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <h1 style="display:none; color:#d4af37; font-size:4rem; text-shadow:0 0 20px #8a1a1a; font-family:'Courier New', monospace;">KALGOTH'S GAZE</h1>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="phaseDisplay" style="position:fixed; top:8px; right:16px; color:#d4af37; font-size:0.8rem; z-index:9999;"></div>
+<div id="gameContainer" class="game-container" style="display:none; opacity:0;">
+        <!-- Icon Bar -->
+        <div class="icon-bar">
+            <div class="game-icon" id="satchelIcon" title="Satchel"><img src="/Images/Satchel.png" alt="Satchel"></div>
+            <div class="game-icon" id="tomeIcon" title="Serpentongue Tome"><img src="/Images/Serpentongue Tome Icon.png" alt="Tome"></div>
+            <div class="game-icon" id="settingsIcon" title="Settings"><img src="/Images/Settings Icon.png" alt="Settings"></div>
+            <div class="game-icon" id="captureJar" title="Grimoire"><img src="/Images/Capture Jar.png" alt="Grimoire"></div>
+        </div>
+
+        <!-- Main Grid Layout -->
+        <div class="main-grid">
+            <!-- LEFT PANEL -->
+            <div class="panel left-panel">
+                <!-- Maze Entrance Section -->
+                <div class="maze-entrance-card">
+                    <img class="maze-avatar" src="/Images/Game Art/Maze/Path_Warded.png" alt="Undercrypt">
+                    <div class="maze-info">
+                        <h4>THE UNDERCRYPT</h4>
+                        <p>Cost: 5 Will | 2 Ichor</p>
+                        <button id="mazeEntranceBtn" class="craft-btn" style="width:100%; margin-top:8px;">🚪 Enter Maze</button>
+                    </div>
+                </div>
+
+                <div class="collapsible-stats">
+                    <div class="collapsible-header" id="toggleCraftingBtn"><span>⚗️ CRAFTING</span><span class="arrow">▼</span></div>
+                    <div class="collapsible-content" id="craftingContent">
+                        <div class="crafting-tiles">
+                            <div class="tile" id="craftPowderBtn" title="Craft Powder of Warding (1 Moss + 1 Phlegm)"><img src="/Images/Mortar.png" alt="Powder"><span class="tile-label">Powder</span></div>
+                            <div class="tile" id="craftPotionBtn" title="Brew Phial of Subjugation (1 Phlegm + 1 Salts)"><img src="/Images/Cauldron.png" alt="Phial"><span class="tile-label">Phial</span></div>
+                            <div class="tile" id="craftRestorativeBtn" title="Craft Restorative Draught (2 Moss + 2 Phlegm + 1 Salts)"><img src="/Images/Restorative.png" alt="Restore"><span class="tile-label">Restore</span></div>
+                        </div>
+                        <div class="crafted-count" id="simpleCraftedList">Powder:0 | Phial:0 | Restore:0</div>
+                        <div class="rune-actions">
+                            <button class="craft-btn" id="studyRuneBtn" title="Study a new pattern (5 Moss + 5 Phlegm)">📖 Study Pattern</button>
+                            <div class="secondary-actions">
+                                <button class="craft-btn" id="traceRuneBtn" title="Etch a selected pattern">✏️ Etch Pattern</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible-stats">
+                    <div class="collapsible-header" id="toggleRitualBtn"><span>🜁 RITUAL CONSOLE</span><span class="arrow">▼</span></div>
+                    <div class="collapsible-content" id="ritualContent">
+                        <div class="ritual-console">
+                            <div class="console-header"><span>Power: <span id="consoleIntegrity">0</span>%</span></div>
+                            <div class="console-section"><div class="console-label">ETCHED PATTERNS</div><div class="console-rune-slots" id="consoleRuneSlots"></div></div>
+                            <div class="console-section"><div class="console-label">KNOWN PATTERNS</div><div class="console-rune-grid" id="consoleRuneGrid"></div></div>
+                            <div class="console-resources-row"><span>🩸 <span id="consoleBlood">3/5</span></span><span>🧪 <span id="consolePowder">0</span></span><span>⚗️ <span id="consolePhial">0</span></span><span>🩸 Ichor: <span id="consoleIchor">0</span></span></div>
+                            <div style="display:flex; gap:4px; margin-bottom:6px;"><button class="console-btn-sm" id="quickCraftPowderBtn">Quick Powder</button><button class="console-btn-sm" id="quickCraftPhialBtn">Quick Phial</button></div>
+                            <button class="console-tithe-btn" id="titheBtn">💰 Pay Tithe (5 Ichor)</button>
+                            <div id="consoleEscapeArea" style="display:none; margin-top:8px;"><button class="console-escape-btn" id="escapeBtn">🔥 ESCAPE</button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bandolier Assignment Panel -->
+                <div class="collapsible-stats">
+                    <div class="collapsible-header" id="toggleBandolierBtn"><span>🎒 BANDOLIER</span><span class="arrow">▼</span></div>
+                    <div class="collapsible-content" id="bandolierContent">
+                        <p style="font-size:0.7rem; margin-bottom:8px;">Assign consumables for the Gaze:</p>
+                        <div id="bandolierSlots" style="display:flex; gap:8px; justify-content:center;">
+                            <div class="bandolier-slot" data-slot="0" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 1</div>
+                            <div class="bandolier-slot" data-slot="1" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 2</div>
+                            <div class="bandolier-slot" data-slot="2" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 3</div>
+                        </div>
+                        <p style="font-size:0.6rem; margin-top:8px;">Click a slot, then click an item in Satchel to assign.</p>
+                    </div>
+                </div>
+
+                <!-- Whisp Card -->
+                <div class="familiar-card">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="whisp-glow-container" id="whispSpriteClick" title="Click to view Whisp stats" style="cursor:pointer;"><div class="whisp-sprite-large"></div></div>
+                        <div style="flex:1;">
+                            <div style="display:flex; justify-content:space-between;"><span>🌀 Whisp Lv.<span id="familiarLevel">1</span></span><span id="familiarMood">Mood: 100%</span></div>
+                            <div class="progress-bar"><div id="xpFill" class="progress-fill" style="width:0%;"></div></div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem;"><span id="familiarXP">XP: 0/10</span><span id="familiarAbilities">Scout</span></div>
+                        </div>
+                    </div>
+                    <div class="button-row" style="margin-top:8px;">
+                        <button class="craft-btn" id="petFamiliarBtn" style="flex:1;">Pet</button>
+                        <button class="craft-btn" id="forageBtn" style="flex:1;">Forage</button>
+                    </div>
+                    <div class="button-row" style="margin-top:4px;">
+                        <button class="craft-btn" id="tutorialBtn" style="flex:1;">📖 Tutorial</button>
+                    </div>
+                    <div id="forageCooldown" style="font-size:0.65rem; text-align:right; margin-top:4px;"></div>
+                </div>
+            </div>
+
+            <!-- CENTER PANEL -->
+            <div class="panel center-stack">
+                <div class="circle-wrapper">
+                    <div class="ritual-circle" id="ritualCircle">
+                        <canvas id="circleCanvas" width="440" height="440"></canvas>
+                        <div id="ritualHalo" class="ritual-halo"></div>
+                        <div class="rune-slots"><div class="rune-slot slot1" id="slot1"><canvas width="52" height="52"></canvas></div><div class="rune-slot slot2" id="slot2"><canvas width="52" height="52"></canvas></div><div class="rune-slot slot3" id="slot3"><canvas width="52" height="52"></canvas></div></div>
+                        <div class="demon-overlay" id="demonOverlay"><img id="demonOverlayImg" src="" alt="Entity"></div>
+                    </div>
+                    <button class="craft-btn" id="traceCircleBtn" style="margin-top:10px;">⭕ Trace Circle</button>
+                </div>
+                <button class="invoke-btn" id="summonBtn">🔺 SUMMON</button>
+
+                <!-- Card Deck & Grimoire Button -->
+                <div class="card-deck-section">
+                    <div class="card-deck-header">
+                        <span>🃏 Active Deck</span>
+                        <button id="openGrimoireBtn" class="craft-btn" style="padding:4px 12px; font-size:0.7rem;">📖 Grimoire</button>
+                    </div>
+                    <div id="cardSlotsContainer" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;"></div>
+                </div>
+
+                <div class="log-area">
+                    <div class="log-header"><span>🌑 ECHO LOG</span><button class="hint-btn" id="hintButton">💡 Hint</button></div>
+                    <div class="log-messages" id="logMessages"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="panel right-panel">
+                <div class="player-card-large"><img class="player-avatar-large" src="/Images/Player Icon.png" alt="Avatar"><div class="player-name" id="playerNameDisplay">Survivor</div></div>
+                <div class="collapsible-stats">
+                    <div class="collapsible-header" id="toggleStatsBtn"><span>📊 VITALS</span><span class="arrow">▼</span></div>
+                    <div class="collapsible-content" id="playerStatsContent">
+                        <div class="stat-row"><span>❤️ Health</span><span id="healthValue">100</span></div>
+                        <div class="stat-row"><span>🌀 Will</span><span id="willValue">100</span></div>
+                        <div class="stat-row"><span>🧿 Kalgoth's Noose</span><span id="nooseValue">10</span></div>
+                        <div class="progress-bar"><div id="nooseFill" class="progress-fill" style="width:10%; background:#6a2a4a;"></div></div>
+                        <div class="stat-row"><span>📜 Mastery Lv.<span id="masteryLevel">0</span></span><span id="masteryXP">0</span>/<span id="masteryNeeded">100</span></div>
+                        <div class="progress-bar"><div id="masteryFill" class="progress-fill" style="width:0%;"></div></div>
+                        <div class="stat-row"><span>🌀 Circle Mastery</span><span id="circleMasteryValue">0</span></div>
+                        <div class="stat-row"><span>⚡ Circle Power</span><span id="circlePowerValue">0</span>%</div>
+                        <div class="progress-bar"><div id="circlePowerFill" class="progress-fill" style="width:0%; background:#8a7a5a;"></div></div>
+                        <div class="stat-row"><span>🩸 Seed Resonance</span><span id="seedResonanceValue">3/5</span></div>
+                        <div class="stat-row"><span>🧪 Banish Power</span><span id="banishPower">0</span></div>
+                    </div>
+                </div>
+                <div class="sundial"><span>⏳ Day</span><div class="progress-bar" style="flex:1;"><div id="dayProgressFill" class="progress-fill" style="width:100%;"></div></div><span id="timerDisplay">10:00</span></div>
+                <div class="stat-row"><span>📦 Quota</span><span id="quotaRemaining">2</span></div>
+                <div id="orbexPanel"></div>
+                
+                <div class="demon-card">
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="font-size:1.5rem;">🜁</span><div id="demonArea" style="flex:1;">🌀 No entity bound</div></div>
+                    <div id="demonActionPanel" style="display:none;">
+                        <div class="button-row">
+                            <button class="craft-btn" id="talkToDemonBtn" title="Speak with bound entity">💬 Talk</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="ashPileArea" class="capture-jar-btn" style="display:none;"><span>🔥 Ash Pile (click)</span></div>
+                <div class="resource-summary" id="resourceSummary"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="tomeModal" class="modal"><div class="modal-content"><h3>📖 SERPENTONGUE TOME</h3><div class="tome-tabs"><button class="tome-tab active" data-tab="guidance">Guidance</button><button class="tome-tab" data-tab="patterns">Patterns</button><button class="tome-tab" data-tab="entities">Entities</button><button class="tome-tab" data-tab="ingredients">Ingredients</button><button class="tome-tab" data-tab="rituals">Rituals</button><button class="tome-tab" data-tab="lore">Lore</button><button class="tome-tab" data-tab="relics">Relics</button><button class="tome-tab" data-tab="settings">Settings</button></div><div id="tomeContent" class="tome-content"></div><button class="close-modal craft-btn" style="margin-top:15px;">Close</button></div></div>
+    <div id="satchelModal" class="modal"><div class="modal-content" style="max-width:750px;"><h3>🎒 SATCHEL</h3><div id="satchelContent"></div><button class="close-modal craft-btn" style="margin-top:15px;">Close</button></div></div>
+    <div id="expeditionModal" class="modal"><div class="modal-content"><h3>🗺️ UNDECRYPT EXPEDITION</h3><div id="expeditionGridContainer"></div><button class="close-modal craft-btn">Close</button></div></div>
+    <div id="runeTraceModal" class="modal"><div class="modal-content"><h3>✏️ ETCH PATTERN</h3><p id="runeTargetName">Select a pattern to etch</p><canvas id="runeTraceCanvas" width="250" height="250" style="background:#0a050a; border-radius:12px; margin:10px auto; display:block; border:1px solid #bc633a;"></canvas><div class="progress-bar"><div id="etchProgress" class="progress-fill" style="width:0%;"></div></div><p>Coverage: <span id="etchCoverage">0</span>% | Smoothness: <span id="etchSmoothness">0</span>%</p><div style="display:flex; gap:10px; justify-content:center;"><button id="confirmRuneTrace" class="craft-btn">Confirm</button><button id="cancelRuneTrace" class="craft-btn">Cancel</button></div></div></div>
+    <div id="demonDialogueModal" class="modal"></div>
+    <div id="whispStatsModal" class="modal"><div class="modal-content"><h3>🌀 WHISP STATS</h3><div id="whispStatsContent"></div><button class="close-modal craft-btn" style="margin-top:15px;">Close</button></div></div>
+    <div id="settingsModal" class="modal"><div class="modal-content"><h3>⚙️ SETTINGS</h3><div id="settingsContent"></div><button class="close-modal craft-btn" style="margin-top:15px;">Close</button></div></div>
+    
+    <div id="tooltipContainer"></div>
+    <div id="whispTip"></div>
+    <div id="escapeArea" style="display:none;"></div>
+
+    <script type="module" src="js/main.ts"></script>
+</body>
+</html>

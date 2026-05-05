@@ -1,0 +1,313 @@
+=== FOLDER TREE ===
+Folder PATH listing for volume Storage
+Volume serial number is A026-A9A9
+D:\DARKNEST\JS
+│   main.ts
+│   
+├───ai
+│       ai-engine.ts
+│       
+├───audio
+│       ambience-manager.ts
+│       sfx.ts
+│       sfx.ts.bak
+│       
+├───core
+│       defaults.ts
+│       dom-helper.ts
+│       persistence.ts
+│       state-signals.ts
+│       state-signals.ts.bak
+│       
+├───data
+│       cards.ts
+│       relics.ts
+│       runes.ts
+│       
+├───minigames
+│       circle-trace.ts
+│       phial-brew.ts
+│       rune-etch.ts
+│       
+├───systems
+│       ability-engine.ts
+│       card-acquisition.ts
+│       card-progression.ts
+│       crafting.ts
+│       day-cycle.ts
+│       familiar-manager.ts
+│       gaze-event.ts
+│       gaze-event.ts.bak
+│       maze-system.ts
+│       summoning.ts
+│       summoning.ts.bak
+│       
+├───types
+│       game.ts
+│       
+└───ui
+        battle-animations.ts
+        card-battle.ts
+        card-battle.ts.bak
+        demon-modal.ts
+        gaze-ui.ts
+        grimoire.ts
+        ledger.ts
+        log-manager.ts
+        satchel.ts
+        settings-panel.ts
+        tome.ts
+        tutorial.ts
+        tutorial.ts.bak
+        ui-renderer.ts
+        whisp-commentary.ts
+        whisp-commentary.ts.bak
+        will-duel.ts
+        
+
+=== IMPORT DEPENDENCIES (per file) ===
+ 
+File: .\js\main.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\ui-renderer.ts
+  -> .\js\ui\tutorial.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\tome.ts
+  -> .\js\ui\satchel.ts
+  -> .\js\ui\grimoire.ts
+  -> .\js\minigames\circle-trace.ts
+  -> .\js\minigames\rune-etch.ts
+  -> .\js\systems\crafting.ts
+  -> .\js\systems\summoning.ts
+  -> .\js\systems\maze-system.ts
+  -> .\js\systems\day-cycle.ts
+  -> .\js\systems\familiar-manager.ts
+  -> .\js\ui\demon-modal.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\audio\ambience-manager.ts
+  -> .\js\ui\whisp-commentary.ts
+  -> .\js\ai\ai-engine.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\ui\settings-panel.ts
+ 
+File: .\js\ai\ai-engine.ts
+  No local imports
+ 
+File: .\js\audio\ambience-manager.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\audio\sfx.ts
+ 
+File: .\js\audio\sfx.ts
+  No local imports
+ 
+File: .\js\core\defaults.ts
+  -> .\js\data\cards.ts
+ 
+File: .\js\core\dom-helper.ts
+  No local imports
+ 
+File: .\js\core\persistence.ts
+  -> .\js\core\state-signals.ts
+ 
+File: .\js\core\state-signals.ts
+  -> .\js\types\game.ts
+  -> .\js\data\cards.ts
+  -> .\js\data\relics.ts
+  -> .\js\systems\card-progression.ts
+  -> .\js\core\persistence.ts
+ 
+File: .\js\data\cards.ts
+  No local imports
+ 
+File: .\js\data\relics.ts
+  No local imports
+ 
+File: .\js\data\runes.ts
+  No local imports
+ 
+File: .\js\minigames\circle-trace.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ai\ai-engine.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\ui\ui-renderer.ts
+  -> .\js\systems\familiar-manager.ts
+ 
+File: .\js\minigames\phial-brew.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\core\dom-helper.ts
+ 
+File: .\js\minigames\rune-etch.ts
+  No local imports
+ 
+File: .\js\systems\ability-engine.ts
+  -> .\js\data\cards.ts
+ 
+File: .\js\systems\card-acquisition.ts
+  -> .\js\data\cards.ts
+  -> .\js\core\state-signals.ts
+ 
+File: .\js\systems\card-progression.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\cards.ts
+ 
+File: .\js\systems\crafting.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\ledger.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\minigames\phial-brew.ts
+  -> .\js\data\runes.ts
+ 
+File: .\js\systems\day-cycle.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\systems\card-progression.ts
+  -> .\js\systems\familiar-manager.ts
+  -> .\js\systems\gaze-event.ts
+  -> .\js\ui\log-manager.ts
+ 
+File: .\js\systems\familiar-manager.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\ledger.ts
+  -> .\js\audio\sfx.ts
+ 
+File: .\js\systems\gaze-event.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\gaze-ui.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\data\relics.ts
+  -> .\js\systems\familiar-manager.ts
+  -> .\js\systems\day-cycle.ts
+ 
+File: .\js\systems\maze-system.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\cards.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\ledger.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\will-duel.ts
+  -> .\js\ui\card-battle.ts
+  -> .\js\minigames\phial-brew.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\data\cards.ts
+  -> .\js\systems\card-acquisition.ts
+  -> .\js\systems\card-progression.ts
+ 
+File: .\js\systems\summoning.ts
+  -> .\js\core\defaults.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\ledger.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\minigames\circle-trace.ts
+  -> .\js\ui\card-battle.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\data\cards.ts
+  -> .\js\types\game.ts
+  -> .\js\systems\card-acquisition.ts
+  -> .\js\systems\familiar-manager.ts
+  -> .\js\ui\demon-modal.ts
+ 
+File: .\js\types\game.ts
+  No local imports
+ 
+File: .\js\ui\battle-animations.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\data\cards.ts
+ 
+File: .\js\ui\card-battle.ts
+  -> .\js\core\defaults.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\cards.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\ui-renderer.ts
+  -> .\js\systems\ability-engine.ts
+  -> .\js\systems\card-progression.ts
+ 
+File: .\js\ui\demon-modal.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ai\ai-engine.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\audio\sfx.ts
+ 
+File: .\js\ui\gaze-ui.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\systems\gaze-event.ts
+ 
+File: .\js\ui\grimoire.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\cards.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\systems\card-progression.ts
+ 
+File: .\js\ui\ledger.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ai\ai-engine.ts
+  -> .\js\core\dom-helper.ts
+ 
+File: .\js\ui\log-manager.ts
+  -> .\js\core\dom-helper.ts
+ 
+File: .\js\ui\satchel.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\relics.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\log-manager.ts
+ 
+File: .\js\ui\settings-panel.ts
+  -> .\js\core\dom-helper.ts
+ 
+File: .\js\ui\tome.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\data\runes.ts
+  -> .\js\data\relics.ts
+ 
+File: .\js\ui\tutorial.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+ 
+File: .\js\ui\ui-renderer.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\runes.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\ui\tutorial.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\whisp-commentary.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\grimoire.ts
+  -> .\js\data\cards.ts
+  -> .\js\types\game.ts
+ 
+File: .\js\ui\whisp-commentary.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\ai\ai-engine.ts
+  -> .\js\systems\card-progression.ts
+ 
+File: .\js\ui\will-duel.ts
+  -> .\js\core\state-signals.ts
+  -> .\js\data\cards.ts
+  -> .\js\core\dom-helper.ts
+  -> .\js\audio\sfx.ts
+  -> .\js\ui\log-manager.ts
+  -> .\js\ui\whisp-commentary.ts

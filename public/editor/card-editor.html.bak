@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kalgoth's Gaze – Card Editor</title>
+  <style>
+    body { background: #0a0508; color: #e0d8cc; font-family: monospace; padding: 24px; }
+    label { display: block; margin: 8px 0 4px; }
+    input, select, textarea { width: 100%; padding: 6px; background: #1a100a; border: 1px solid #5a4a3a; color: #e0d8cc; border-radius: 4px; }
+    textarea { height: 80px; }
+    .preview { margin-top: 20px; border: 1px solid #d4af37; border-radius: 12px; padding: 16px; }
+    button { padding: 8px 16px; background: #2a1a0a; border: 1px solid #d4af37; color: #e0d8cc; cursor: pointer; border-radius: 8px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Card Editor</h1>
+  <label>ID <input id="id" placeholder="cinder_wyrm"></label>
+  <label>Name <input id="name" placeholder="Cinder Wyrm"></label>
+  <label>Type <select id="type"><option>entity</option><option>spell</option><option>enhancement</option><option>land</option></select></label>
+  <label>Rarity <select id="rarity"><option>common</option><option>uncommon</option><option>rare</option><option>epic</option><option>legendary</option></select></label>
+  <label>Aspect <input id="aspect" placeholder="Fire"></label>
+  <label>Image URL <input id="image" placeholder="/Images/Game Art/Creatures/Cinder Wyrm.png"></label>
+  <label>Frame URL <input id="frame" placeholder="/Images/Game Art/Frame Overlays/Uncommon Frame.png"></label>
+  <label>Stats (JSON) <textarea id="stats">{ "hp": 8, "atk": 4, "spd": 3, "cun": 1, "def": 2, "res": 10, "init": 3, "loyalty": 75 }</textarea></label>
+  <label>Abilities (JSON array) <textarea id="abilities">[{ "name": "Magma Trail", "type": "combat", "effect": "Minions take 1 damage when entering the tile." }]</textarea></label>
+  <label>Flavor <input id="flavor" placeholder="A wingless drake with obsidian scales..."></label>
+  <button onclick="generateCard()">Generate Card JSON</button>
+  <div class="preview" id="preview"></div>
+  <script>
+    function generateCard() {
+      const card = {
+        id: document.getElementById('id').value,
+        name: document.getElementById('name').value,
+        type: document.getElementById('type').value,
+        rarity: document.getElementById('rarity').value,
+        aspect: document.getElementById('aspect').value,
+        image: document.getElementById('image').value,
+        frame: document.getElementById('frame').value,
+        stats: JSON.parse(document.getElementById('stats').value),
+        abilities: JSON.parse(document.getElementById('abilities').value),
+        flavor: document.getElementById('flavor').value
+      };
+      document.getElementById('preview').innerHTML = '<pre>' + JSON.stringify(card, null, 2) + '</pre>';
+    }
+  </script>
+</body>
+</html>

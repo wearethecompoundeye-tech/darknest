@@ -1,3 +1,17 @@
+# fix-all.ps1 – Restores ai-engine.ts, game.ts, and fixes CSS
+
+Write-Host "Creating clean ai-engine.ts..."
+@'
+// js/ai/ai-engine.ts – AI engine (mock for now)
+
+export async function askOllama(messages: { role: string; content: string }[]): Promise<string> {
+  // MOCK for testing – no Ollama needed
+  return "I hear you, Acolyte. The shadows listen.";
+}
+'@ | Set-Content -Path "js/ai/ai-engine.ts" -Encoding UTF8 -NoNewline
+
+Write-Host "Creating clean game.ts..."
+@'
 // js/core/game.ts – Central game orchestrator, demon‑free.
 // Kalgoth’s taunts and modal manager are integrated.
 // All button bindings are present and correct.
@@ -153,3 +167,16 @@ export class Game {
     autoSave();
   }
 }
+'@ | Set-Content -Path "js/core/game.ts" -Encoding UTF8 -NoNewline
+
+Write-Host "Fixing CSS bad selector..."
+$cssLines = Get-Content "css/styles.css" -Encoding UTF8
+$cleaned = $cssLines | Where-Object { $_ -notmatch '^\s*\.left-panel,\s*$' }
+Set-Content "css/styles.css" $cleaned -Encoding UTF8 -NoNewline
+
+Write-Host "Committing and pushing..."
+git add -A
+git commit -m "fix: restore ai-engine, game.ts, and CSS"
+git push
+
+Write-Host "Done! Refresh your browser."

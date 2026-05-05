@@ -90,40 +90,7 @@ export class Game {
     const maxInterval = 180_000;
     const schedule = () => {
       const delay = minInterval + Math.random() * (maxInterval - minInterval);
-      this.kalgothTauntInterval = window.setTimeout(async () => {
-        try {
-          const dummyState = {
-            playerHP: health.value, playerMaxHP: 100, playerAttack: 10, playerDefense: 0,
-            playerResistance: 0, playerMomentum: 0, playerIsDefending: false,
-            enemyHP: 100, enemyMaxHP: 100, enemyAttack: 10, enemyDefense: 0,
-            enemyResistance: 0, enemyMomentum: 0, enemyIsDefending: false,
-            battleLog: ['Acolyte wanders the Undercrypt.'],
-            playerAbilities: [], enemyAbilities: [], hand: [], turn: 'player',
-            advantage: 0, canFlee: false, fleeAttempts: 0,
-            playerStatusEffects: [], enemyStatusEffects: [],
-            turnCount: 0, enemyTelegraphed: false,
-            playerIntent: null, enemyIntent: 'attack', telegraphEffect: 'none',
-            playerActionHistory: [], enemyActionHistory: [], enemyDelayTurns: 0,
-          };
-          const dummyEnemy = {
-            id: 'kalgoth_echo', name: 'Kalgoths Echo', type: 'entity', rarity: 'legendary',
-            aspect: 'Void', image: '', frame: '',
-            stats: { hp: 999, atk: 20, def: 10, res: 30, spd: 5, cun: 5, init: 10, loyalty: 0 },
-            abilities: [],
-          };
-          const dummyPlayer = {
-            id: 'umbral_mite', name: 'Acolyte', type: 'entity', rarity: 'common',
-            aspect: 'Void', image: '', frame: '',
-            stats: { hp: 20, atk: 3, def: 1, res: 10, spd: 3, cun: 2, init: 3, loyalty: 70 },
-            abilities: [],
-          };
-          const { banter } = await getKalgothAction(dummyState as any, dummyPlayer as any, dummyEnemy as any);
-          if (banter) addLog(`KALGOTH: ${banter}`, false, 'void');
-        } catch {
-          addLog('KALGOTH: *A distant, mocking laugh echoes.*', false, 'void');
-        }
-        schedule();
-      }, delay);
+      `this.kalgothTauntInterval = window.setTimeout(async () => {`n          addLog(`KALGOTH: *A distant, mocking laugh echoes.*`, false, "void");`n          schedule();`n        }, delay;
     };
     schedule();
   }
@@ -161,6 +128,14 @@ export class Game {
     }
 
     document.getElementById('whispSpriteClick')?.addEventListener('click', () => import('../ui/tutorial.js').then(m => m.openWhispStats()));
+
+    document.getElementById('tutorialBtn')?.addEventListener('click', () => 
+      import('../ui/tutorial.js').then(m => m.showTutorial())
+    );
+
+    document.getElementById('traceCircleBtn')?.addEventListener('click', () => 
+      import('../minigames/circle-trace.js').then(m => m.startCircleTracing())
+    );
 
     document.getElementById('petFamiliarBtn')?.addEventListener('click', () => import('../systems/familiar-manager.js').then(m => m.petFamiliar()));
     document.getElementById('forageBtn')?.addEventListener('click', () => import('../systems/familiar-manager.js').then(m => m.forage()));

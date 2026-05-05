@@ -213,8 +213,10 @@ body::after {
 }
 
 /* Side panels: allow vertical scroll, hide scrollbar */
-.left-panel, 
-
+.left-panel,
+.right-panel {
+  overflow-y: auto;
+}
 .left-panel::-webkit-scrollbar,
 .right-panel::-webkit-scrollbar {
   display: none;

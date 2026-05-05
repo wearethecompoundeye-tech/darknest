@@ -7,8 +7,8 @@ export async function initLocale(lang: string = 'en'): Promise<void> {
   try {
     const res = await fetch(`/locales/${lang}.json`);
     currentLocale = await res.json();
-  } catch {
-    console.warn(`Locale ${lang} not found, falling back to English.`);
+  } catch (error) {
+    console.warn(`Locale ${lang} not found, falling back to English.`, error);
     const res = await fetch('/locales/en.json');
     currentLocale = await res.json();
   }

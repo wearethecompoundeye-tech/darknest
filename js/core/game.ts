@@ -48,6 +48,7 @@ import { updateAmbience, stopAllAmbience } from '../audio/ambience-manager.js';
 import { whispSay, setupWhispReactions, setWhispEnabled, isWhispEnabled } from '../ui/whisp-commentary.js';
 import { testOllamaConnection } from '../ai/ai-engine.js';
 import { el } from './dom-helper.js';
+import { logger } from './logger.js';
 import { renderSettingsContent } from '../ui/settings-panel.js';
 import { gameBus } from './eventBus.js';
 import { GameEvents, type SummonVictoryPayload, type TithePaidPayload, type GazeSurvivedPayload, type GazeDefeatPayload, type FragmentCollectedPayload } from './events.js';
@@ -268,17 +269,17 @@ export class Game {
     // Check for existing saves
     getSlotList().then(slots => {
       if (slots.length > 0) {
-        showSaveSlots(() => { console.log('Game started from save slot'); });
+        showSaveSlots(() => { logger.debug('Game started from save slot'); });
       } else {
-        console.log('No saves found – starting new game');
+        logger.debug('No saves found – starting new game');
         setCurrentSlot('autosave');
       }
     });
 
-    initSaveSystem().then(() => console.log('Save system ready'));
+    initSaveSystem().then(() => logger.debug('Save system ready'));
     initLocale('en');
   setClashEnabled(localStorage.getItem('clashEnabled') !== 'false');
-    initPlugins().then(() => console.log('Plugins ready'));
+    initPlugins().then(() => logger.debug('Plugins ready'));
   initDevMode();
 
     // W key listener for Zilion

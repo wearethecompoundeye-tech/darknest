@@ -4,6 +4,7 @@ import { DEFAULT_ENTITY_CARD } from '../core/defaults.js';
 // Fixed: activeDemon cleanup on unequip/release, barter rewards use weighted system
 
 import { batch } from '@preact/signals-core';
+import { AshRemains } from '../types/game.js';
 import {
   state,
   health,
@@ -140,8 +141,10 @@ function getRuneBonuses(): { summonChance: number; dominationChance: number } {
 }
 
 export function summonEntity(): void {
-  if (currentPhase.value.status === 'summoning') { if (currentPhase.value.status === 'summoning') transition({ type: 'SUMMON_COMPLETE' }); }
-  if (currentPhase.value.status !== 'idle') { console.warn('Cannot summon now – current phase:', currentPhase.value.status); return; }
+  if (currentPhase.value.status !== 'idle') { 
+    console.warn('Cannot summon now – current phase:', currentPhase.value.status); 
+    return; 
+  }
 
   if (health.value <= 0) return;
   if (crafted.value.powderOfWarding <= 0) {
@@ -219,8 +222,8 @@ export function summonEntity(): void {
     setTimeout(() => ritualCircle.classList.remove("summon-animation"), 600);
   }
 
-    transition({ type: 'START_SUMMON', entityCardId: entityCard.id });
-openCardBattleModal({
+  transition({ type: 'START_SUMMON', entityCardId: entityCard.id });
+  openCardBattleModal({
     enemyCard: entityCard,
     playerCard: finalPlayerEntity,
     advantage,
@@ -304,7 +307,6 @@ gameBus.emit<SummonVictoryPayload>(GameEvents.SUMMON_VICTORY, {
   reduceQuota();
   if (currentPhase.value.status === 'summoning') transition({ type: 'SUMMON_COMPLETE' });
   advanceAction();
-  if (currentPhase.value.status === 'summoning') transition({ type: 'SUMMON_COMPLETE' });
   resetCircleAfterSummon();
   autoSave();
 }
@@ -413,7 +415,7 @@ export function collectAsh(): void {
     addLog("No ashes.", true);
     return;
   }
-  const reward = (pendingAshRemains.value as any)?.reward || {};
+  const reward = (pendingAshRemains.value as AshRemains)?.reward || {};
   for (const key in reward) {
     ingredients.value = { ...ingredients.value, [key]: (ingredients.value[key as keyof typeof ingredients.value] || 0) + reward[key] };
     discover('ingredients', key);

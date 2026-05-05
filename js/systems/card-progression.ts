@@ -8,6 +8,7 @@ import {
   ownedCards
 } from '../core/state-signals.js';
 import { allCards, getCardById, type Card, type EntityStats, type CardRarity } from '../data/cards.js';
+import type { LandStats } from '../types/game.js';
 
 // ========== COMBO SYSTEM ==========
 export interface ActiveCombo {
@@ -192,7 +193,7 @@ export function processLandGeneration(): { resource: string; amount: number }[] 
     const land = getCardById(landId);
     if (!land || land.type !== 'land') continue;
     
-    const stats = land.stats as any;
+    const stats = land.stats as LandStats;
     if (stats?.generation) {
       generation.push({
         resource: stats.generation.resource,

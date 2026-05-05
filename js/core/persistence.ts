@@ -2,6 +2,7 @@
 // Save/load with IndexedDB and multiple slots.
 
 import { batch } from '@preact/signals-core';
+import { logger } from './logger.js';
 import {
   playerName, ingredients, crafted, knownRunes, selectedRunes, runeSlots,
   masteryLevel, masteryXP, masteryNeeded, storyProgress, will, health, maxWill,
@@ -229,9 +230,11 @@ export async function initSaveSystem(): Promise<void> {
       const parsed = JSON.parse(oldData);
       if (parsed && parsed.playerName) {
         await saveToSlot('slot1');
-        console.log('Migrated old save to slot1');
+        logger.debug('Migrated old save to slot1');
       }
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to migrate old save data:', error);
+    }
     localStorage.removeItem('kalgothGazeOrbitSave'); // clear after migration
   }
 
@@ -240,7 +243,7 @@ export async function initSaveSystem(): Promise<void> {
   if (!autosaveLoaded) {
     const slot1Loaded = await loadFromSlot('slot1');
     if (!slot1Loaded) {
-      console.log('No save found, starting new game.');
+      logger.debug('No save found, starting new game.');
     }
   }
 }

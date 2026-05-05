@@ -2,6 +2,7 @@
 // Event-driven tutorial flag updates.
 // These will eventually replace the in‑line flag sets.
 
+import { logger } from '../core/logger.js';
 import { gameBus } from '../core/eventBus.js';
 import {
   GameEvents,
@@ -20,7 +21,7 @@ export function initTutorialListeners(): void {
     if (!tutorial.value.firstTithePaid) {
       tutorial.value = { ...tutorial.value, firstTithePaid: true };
       gameBus.emit<WhispMessagePayload>(GameEvents.WHISP_MESSAGE, { text: 'Good, you paid the tithe. That noose was getting tight.', speaker: 'zelion' });
-      console.log('[Tutorial Listener] firstTithePaid set');
+      logger.debug('[Tutorial Listener] firstTithePaid set');
     }
   });
 
@@ -29,7 +30,7 @@ export function initTutorialListeners(): void {
     if (!tutorial.value.firstSummon) {
       tutorial.value = { ...tutorial.value, firstSummon: true };
       gameBus.emit<WhispMessagePayload>(GameEvents.WHISP_MESSAGE, { text: 'Your first summon! That creature is ugly, but useful.', speaker: 'zelion' });
-      console.log('[Tutorial Listener] firstSummon set');
+      logger.debug('[Tutorial Listener] firstSummon set');
     }
   });
 
@@ -46,7 +47,7 @@ export function initTutorialListeners(): void {
     }
     if (changed) {
       tutorial.value = t;
-      console.log('[Tutorial Listener] Gaze tutorial flags set');
+      logger.debug('[Tutorial Listener] Gaze tutorial flags set');
     }
   });
 
@@ -55,7 +56,7 @@ export function initTutorialListeners(): void {
     if (!tutorial.value.firstTrace) {
       tutorial.value = { ...tutorial.value, firstTrace: true };
       gameBus.emit<WhispMessagePayload>(GameEvents.WHISP_MESSAGE, { text: 'The circle is traced. The Orbex fragment in your head is humming.', speaker: 'zelion' });
-      console.log('[Tutorial Listener] firstTrace set', payload.quality);
+      logger.debug('[Tutorial Listener] firstTrace set', payload.quality);
     }
   });
 }

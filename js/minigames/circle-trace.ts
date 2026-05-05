@@ -414,7 +414,9 @@ function completeTrace(success: boolean): void {
     addLog(`✨ Circle traced with ${Math.floor(finalQuality * 100)}% quality! Power +${25 + Math.floor(finalQuality * 20)}`, false, 'player');
     narrateEvent(`The survivor traces a ritual circle in emerald light. The Seed resonates.`)
       .then(n => { if (n) addLog(`🌿 ${n}`, false, 'orbex'); })
-      .catch(() => { });
+      .catch((error) => { 
+        console.warn('Circle trace image load failed:', error);
+      });
     const ritualCircle = el("ritualCircle");
     if (ritualCircle) ritualCircle.classList.add("traced");
     startLoop("runeTetherAmbient");

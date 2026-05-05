@@ -117,13 +117,23 @@ class LocalStorageFallback implements IGameStorage {
   async load(slotId: string): Promise<unknown | null> {
     const raw = localStorage.getItem(this.prefix + slotId);
     if (!raw) return null;
-    try { return JSON.parse(raw).data; } catch { return null; }
+    try { 
+      return JSON.parse(raw).data; 
+    } catch (error) { 
+      console.warn(`Failed to load slot ${slotId}:`, error);
+      return null; 
+    }
   }
 
   async getSlotMeta(slotId: string): Promise<SaveSlotMeta | null> {
     const raw = localStorage.getItem(this.prefix + slotId);
     if (!raw) return null;
-    try { return JSON.parse(raw).meta; } catch { return null; }
+    try { 
+      return JSON.parse(raw).meta; 
+    } catch (error) { 
+      console.warn(`Failed to load slot metadata for ${slotId}:`, error);
+      return null; 
+    }
   }
 
   async listSlots(): Promise<SaveSlotMeta[]> {
@@ -133,7 +143,11 @@ class LocalStorageFallback implements IGameStorage {
       if (key?.startsWith(this.prefix)) {
         const raw = localStorage.getItem(key);
         if (raw) {
-          try { metas.push(JSON.parse(raw).meta); } catch {}
+          try { 
+            metas.push(JSON.parse(raw).meta); 
+          } catch (error) {
+            console.warn(`Failed to parse save slot ${key}:`, error);
+          }
         }
       }
     }

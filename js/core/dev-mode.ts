@@ -2,6 +2,7 @@
 // Developer sandbox: Ctrl+Shift+D toggles infinite resources and unlocks everything.
 
 import { batch } from '@preact/signals-core';
+import { logger } from './logger.js';
 import {
   ingredients, crafted, knownRunes, selectedRunes, runeSlots,
   will, health, maxWill, suspicion, seedResonance, maxSeedResonance,
@@ -40,10 +41,10 @@ function toggleDevMode(): void {
   if (devMode) {
     grantAllResources();
     createDevPanel();
-    console.log('🛠️ Developer mode ON');
+    logger.debug('🛠️ Developer mode ON');
   } else {
     destroyDevPanel();
-    console.log('🛠️ Developer mode OFF (resources retained)');
+    logger.debug('🛠️ Developer mode OFF (resources retained)');
   }
 }
 

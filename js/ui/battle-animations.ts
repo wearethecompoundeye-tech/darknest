@@ -1,14 +1,15 @@
 // js/ui/battle-animations.ts
 import { el } from '../core/dom-helper.js';
+import { logger } from '../core/logger.js';
 import { playSfx, startLoop, stopLoop } from '../audio/sfx.js';
 import type { Card, CardRarity } from '../data/cards.js';
 
 export async function playBattleCommenceAnimation(enemyCard: Card): Promise<void> {
-  console.log('[Battle Animation] Starting animation for', enemyCard.name);
+  logger.debug('[Battle Animation] Starting animation for', enemyCard.name);
   return new Promise((resolve) => {
     const gameContainer = el('gameContainer');
     if (!gameContainer) {
-      console.warn('[Battle Animation] gameContainer not found');
+      logger.warn('[Battle Animation] gameContainer not found');
       return resolve();
     }
 

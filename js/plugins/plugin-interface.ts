@@ -1,6 +1,8 @@
 // js/plugins/plugin-interface.ts
 // Lightweight plugin system for loading new cards, abilities, and locales.
 
+import { logger } from '../core/logger.js';
+
 export interface GamePlugin {
   id: string;
   version: string;
@@ -20,13 +22,13 @@ const plugins: GamePlugin[] = [];
 
 export function registerPlugin(plugin: GamePlugin): void {
   plugins.push(plugin);
-  console.log(`[Plugin] Registered: ${plugin.name} (${plugin.id})`);
+  logger.debug(`[Plugin] Registered: ${plugin.name} (${plugin.id})`);
 }
 
 export async function initPlugins(): Promise<void> {
   for (const plugin of plugins) {
     await plugin.init();
-    console.log(`[Plugin] Initialised: ${plugin.name}`);
+    logger.debug(`[Plugin] Initialised: ${plugin.name}`);
   }
 }
 

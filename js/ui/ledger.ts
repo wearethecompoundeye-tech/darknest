@@ -63,7 +63,8 @@ export async function renderLedger(containerId: string): Promise<void> {
     try {
       const prompt = `You are a skald in a dark Norse fantasy world. Write a short epic verse (4-6 lines) in alliterative, kennings-rich style about an acolyte who ${summary}. Use archaic language. Keep under 100 words.`;
       verse = await askOllama([{ role: 'user', content: prompt }]);
-    } catch (e) {
+    } catch (error) {
+      console.warn('Failed to generate skald verse:', error);
       verse = "The ravens watch, but no song comes.\nThe acolyte's deeds echo in silence.";
     }
   } else {

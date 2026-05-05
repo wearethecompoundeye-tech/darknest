@@ -383,7 +383,10 @@ async function handleChatSend(userText: string): Promise<void> {
     const mem = getZilionMemory(); const prompt = mem.getPersonalityPrompt();
     const reply = await askOllama([{ role:'user', content:`${prompt}\n\nUser message: ${userText}` }]);
     addChatMsg('zelion', reply);
-  } catch { addChatMsg('zelion', "*static*"); }
+  } catch (error) { 
+    console.warn('Zelion chat generation failed:', error);
+    addChatMsg('zelion', "*static*"); 
+  }
 }
 
 export function showBubble(text: string, isKalgoth: boolean = false): void { addOrQueue(isKalgoth ? 'kalgoth' : 'zelion', text); }

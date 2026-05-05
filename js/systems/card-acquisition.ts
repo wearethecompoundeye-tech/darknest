@@ -51,7 +51,7 @@ export function selectWeightedCard(
   const weightedPool: { card: Card; weight: number }[] = [];
   
   for (const card of allCards) {
-    if (!typeFilter.includes(card.type as any)) continue;
+    if (!typeFilter.includes(card.type)) continue;
     if (aspectFilter && card.aspect !== aspectFilter && card.aspect !== 'All') continue;
     if (excludeIds?.includes(card.id)) continue;
     
@@ -65,7 +65,7 @@ export function selectWeightedCard(
   }
   
   if (weightedPool.length === 0) {
-    const fallback = allCards.find(c => typeFilter.includes(c.type as any)) || allCards[0];
+    const fallback = allCards.find(c => typeFilter.includes(c.type)) || allCards[0];
     return fallback;
   }
   
@@ -141,7 +141,7 @@ export function getUndiscoveredCard(
   ownedCardIds: string[]
 ): Card | null {
   const undiscovered = allCards.filter(c => 
-    typeFilter.includes(c.type as any) && 
+    typeFilter.includes(c.type) && 
     !ownedCardIds.includes(c.id)
   );
   

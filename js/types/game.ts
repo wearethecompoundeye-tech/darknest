@@ -1,7 +1,69 @@
 // js/types/game.ts
 // Core type definitions for Kalgoth's Gaze
 
-export type DemonTrait =
+export interface EnhancementStats {
+  effect: string;
+  statBonus?: Partial<EntityStats>;
+  aspectBonus?: Record<Aspect, Partial<EntityStats>>;
+  expeditionBonus?: Partial<EntityStats>;
+}
+
+export interface LandStats {
+  generation?: { resource: string; amount: number };
+  effect?: string;
+  combatBonus?: Partial<EntityStats>;
+  expeditionBonus?: Partial<EntityStats>;
+  stats?: Partial<EntityStats>; // For compatibility with existing code
+}
+
+export interface SpellStats {
+  cost: number;
+  effect: string;
+  damage?: number;
+  healing?: number;
+  keywords?: string[];
+}
+
+export interface EntityStats {
+  hp: number;
+  atk: number;
+  spd: number;
+  cun: number;
+  def: number;
+  res: number;
+  init: number;
+  loyalty: number;
+}
+
+export interface EntityAbility {
+  name: string;
+  type: 'combat' | 'expedition' | 'passive';
+  effect: string;
+  trigger?: 'onAttack' | 'onDamage' | 'onKill' | 'onTurnStart' | 'onSummon' | 'onExpeditionStart';
+  cooldown?: number;
+  value?: number;
+}
+
+export interface Card {
+  id: string;
+  name: string;
+  type: CardType;
+  rarity: CardRarity;
+  aspect: Aspect | string;
+  image: string;
+  frame: string;
+  stats?: EntityStats | SpellStats | EnhancementStats | LandStats;
+  abilities?: EntityAbility[];
+  flavor?: string;
+  comboWith?: string[];
+  comboEffect?: string;
+}
+
+export type CardType = 'entity' | 'spell' | 'enhancement' | 'land';
+export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type Aspect = 'Void' | 'Fire' | 'Earth' | 'Air' | 'Water' | 'Life' | 'Death' | 'All';
+
+export interface DemonTrait =
   | 'Imp'
   | 'Cunning'
   | 'Feral'
@@ -81,14 +143,39 @@ export interface TrueNameFragments {
   [demonType: string]: [boolean, boolean, boolean];
 }
 
-export interface DemonImagesState {
-  imp: string[];
-  feral: string[];
-  cunning: string[];
-  ancient: string[];
-  volatile: string[];
-  shadow: string[];
-  kin: string[];
+export interface LedgerEntry {
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: number;
+}
+
+export interface MazeState {
+  currentRoom: string;
+  exploredRooms: string[];
+  availablePaths: string[];
+  difficulty: number;
+  corruption: number;
+}
+
+export interface Relic {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  effect: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  type: 'passive' | 'active' | 'consumable';
+}
+
+export interface AshRemains {
+  reward: {
+    ichor?: number;
+    boneDust?: number;
+    relics?: string[];
+    cards?: string[];
+  };
+  description: string;
+  quality: number;
 }
 
 export interface GameState {
@@ -132,13 +219,13 @@ export interface GameState {
   totalWillClashWins: number;
   tutorial: TutorialState;
   discoveries: DiscoveriesState;
-  currentMaze: unknown; // Will be properly typed later
+  currentMaze: MazeState | null;
   circleQuality: number;
   circleIntegrity: number;
-  ledgerEntries: unknown[];
-  relics: unknown[]; // Will be properly typed from relics.ts
+  ledgerEntries: LedgerEntry[];
+  relics: Relic[];
   ashAvailable: boolean;
-  pendingAshRemains: unknown;
+  pendingAshRemains: AshRemains | null;
   itemUsageDaily: Record<string, boolean>;
   orbexFragments: number;
   maxOrbexFragments: number;

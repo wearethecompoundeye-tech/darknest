@@ -41,13 +41,23 @@ export class ZilionMemory {
   }
 
   private save(): void {
-    try { localStorage.setItem(this.storageKey, JSON.stringify({ memory: this.memory.slice(-200), traits: this.traits })); } catch {}
+    try { 
+      localStorage.setItem(this.storageKey, JSON.stringify({ memory: this.memory.slice(-200), traits: this.traits })); 
+    } catch (error) {
+      console.warn('Failed to persist Zelion memory:', error);
+    }
   }
   private load(): void {
     try {
       const raw = localStorage.getItem(this.storageKey);
-      if (raw) { const data = JSON.parse(raw); this.memory = data.memory || []; this.traits = { ...DEFAULT_TRAITS, ...(data.traits || {}) }; }
-    } catch {}
+      if (raw) { 
+        const data = JSON.parse(raw); 
+        this.memory = data.memory || []; 
+        this.traits = { ...DEFAULT_TRAITS, ...(data.traits || {}) }; 
+      }
+    } catch (error) {
+      console.warn('Failed to load Zelion memory:', error);
+    }
   }
 }
 

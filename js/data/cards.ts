@@ -3,65 +3,10 @@
 // 100 cards with expanded stats, abilities, keywords, and combo synergies
 // Last updated: 2026-04-20
 
-export type CardType = 'entity' | 'spell' | 'enhancement' | 'land';
-export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-export type Aspect = 'Void' | 'Fire' | 'Earth' | 'Air' | 'Water' | 'Life' | 'Death' | 'All';
-
-export interface EntityStats {
-  hp: number;
-  atk: number;
-  spd: number;
-  cun: number;
-  def: number;
-  res: number;
-  init: number;
-  loyalty: number;
-}
-
-export interface EntityAbility {
-  name: string;
-  type: 'combat' | 'expedition' | 'passive';
-  effect: string;
-  trigger?: 'onAttack' | 'onDamage' | 'onKill' | 'onTurnStart' | 'onSummon' | 'onExpeditionStart';
-  cooldown?: number;
-  value?: number;
-}
-
-export interface SpellStats {
-  cost: number;
-  effect: string;
-  damage?: number;
-  healing?: number;
-  keywords?: string[];
-}
-
-export interface EnhancementStats {
-  effect: string;
-  statBonus?: Partial<EntityStats>;
-  aspectBonus?: Record<Aspect, Partial<EntityStats>>;
-}
-
-export interface LandStats {
-  generation?: { resource: string; amount: number };
-  effect?: string;
-  combatBonus?: Partial<EntityStats>;
-  expeditionBonus?: Partial<EntityStats>;
-}
-
-export interface Card {
-  id: string;
-  name: string;
-  type: CardType;
-  rarity: CardRarity;
-  aspect: Aspect | string;
-  image: string;
-  frame: string;
-  stats?: EntityStats | SpellStats | EnhancementStats | LandStats;
-  abilities?: EntityAbility[];
-  flavor?: string;
-  comboWith?: string[];
-  comboEffect?: string;
-}
+import type {
+  Card, CardType, CardRarity, Aspect, EntityStats, EntityAbility,
+  SpellStats, EnhancementStats, LandStats
+} from '../types/game.js';
 
 function getFramePath(rarity: CardRarity): string {
   const frames: Record<CardRarity, string> = {
@@ -637,17 +582,17 @@ export const allCards: Card[] = [
   {
     id: 'iron_will', name: 'Iron Will', type: 'enhancement', rarity: 'common', aspect: 'All',
     image: '/Images/Game Art/Enhancements/Iron Will.png', frame: getFramePath('common'),
-    stats: { effect: '+2 maximum Will.', statBonus: { maxWill: 2 } as any }
+    stats: { effect: '+2 maximum Will.', statBonus: { maxWill: 2 } } as EnhancementStats
   },
   {
     id: 'smooth_river_stone', name: 'Smooth River Stone', type: 'enhancement', rarity: 'common', aspect: 'Water',
     image: '/Images/Game Art/Enhancements/Smooth River Stone.png', frame: getFramePath('common'),
-    stats: { effect: '+1 HP for all Water entities.', aspectBonus: { Water: { hp: 1 } } as any }
+    stats: { effect: '+1 HP for all Water entities.', aspectBonus: { Water: { hp: 1 } } } as EnhancementStats
   },
   {
     id: 'bone_charm', name: 'Bone Charm', type: 'enhancement', rarity: 'common', aspect: 'Death',
     image: '/Images/Game Art/Enhancements/Bone Charm.png', frame: getFramePath('common'),
-    stats: { effect: 'Entities have +1 CUN when detecting Traps.', statBonus: { cun: 1 } as any }
+    stats: { effect: 'Entities have +1 CUN when detecting Traps.', statBonus: { cun: 1 } } as EnhancementStats
   },
   {
     id: 'polished_geode', name: 'Polished Geode', type: 'enhancement', rarity: 'common', aspect: 'Earth',
@@ -659,7 +604,7 @@ export const allCards: Card[] = [
   {
     id: 'void_touched_focus', name: 'Void-Touched Focus', type: 'enhancement', rarity: 'uncommon', aspect: 'Void',
     image: '/Images/Game Art/Enhancements/Void-Touched Focus.png', frame: getFramePath('uncommon'),
-    stats: { effect: '+1 CUN for all Void entities.', aspectBonus: { Void: { cun: 1 } } as any }
+    stats: { effect: '+1 CUN for all Void entities.', aspectBonus: { Void: { cun: 1 } } } as EnhancementStats
   },
   {
     id: 'wisp_touched_lantern', name: 'Wisp-Touched Lantern', type: 'enhancement', rarity: 'uncommon', aspect: 'Life',
@@ -669,7 +614,7 @@ export const allCards: Card[] = [
   {
     id: 'starlight_vial', name: 'Starlight Vial', type: 'enhancement', rarity: 'uncommon', aspect: 'Void',
     image: '/Images/Game Art/Enhancements/Starlight Vial.png', frame: getFramePath('uncommon'),
-    stats: { effect: '+1 SPD for all entities.', statBonus: { spd: 1 } as any }
+    stats: { effect: '+1 SPD for all entities.', statBonus: { spd: 1 } } as EnhancementStats
   },
   {
     id: 'acolytes_memoria', name: "Acolyte's Memoria", type: 'enhancement', rarity: 'uncommon', aspect: 'All',
@@ -706,7 +651,7 @@ export const allCards: Card[] = [
   {
     id: 'ring_last_acolyte', name: 'Ring of the Last Acolyte', type: 'enhancement', rarity: 'rare', aspect: 'Void',
     image: '/Images/Game Art/Enhancements/Ring of the Last Acolyte.png', frame: getFramePath('rare'),
-    stats: { effect: '+5 maximum Will; +1 Will regeneration per day.', statBonus: { maxWill: 5 } as any }
+    stats: { effect: '+5 maximum Will; +1 Will regeneration per day.', statBonus: { maxWill: 5 } } as EnhancementStats
   },
 
   // --- Epic Enhancements (3) ---
@@ -718,7 +663,7 @@ export const allCards: Card[] = [
   {
     id: 'seven_acolytes_sigil', name: "The Seven Acolytes' Sigil", type: 'enhancement', rarity: 'epic', aspect: 'All',
     image: '/Images/Game Art/Enhancements/The Seven Acolytes Sigil.png', frame: getFramePath('epic'),
-    stats: { effect: 'All entities gain +1 to all stats (HP, ATK, SPD, CUN).', statBonus: { hp: 1, atk: 1, spd: 1, cun: 1 } as any }
+    stats: { effect: 'All entities gain +1 to all stats (HP, ATK, SPD, CUN).', statBonus: { hp: 1, atk: 1, spd: 1, cun: 1 } } as EnhancementStats
   },
   {
     id: 'un_sneezed_breath', name: 'The Un-Sneezed Breath', type: 'enhancement', rarity: 'epic', aspect: 'Void',
@@ -761,7 +706,7 @@ export const allCards: Card[] = [
   {
     id: 'sanctum_of_ash', name: 'Sanctum of Ash', type: 'land', rarity: 'uncommon', aspect: 'Fire',
     image: '/Images/Game Art/Land/Sanctum of Ash.png', frame: getFramePath('uncommon'),
-    stats: { effect: 'Fire entities gain +1 ATK while on expedition.', expeditionBonus: { atk: 1 } as any }
+    stats: { effect: 'Fire entities gain +1 ATK while on expedition.', expeditionBonus: { atk: 1 } } as LandStats
   },
   {
     id: 'the_weeping_wall', name: 'The Weeping Wall', type: 'land', rarity: 'uncommon', aspect: 'Water',
@@ -771,7 +716,7 @@ export const allCards: Card[] = [
   {
     id: 'crystal_womb_cavern', name: 'Crystal-Womb Cavern', type: 'land', rarity: 'uncommon', aspect: 'Earth',
     image: '/Images/Game Art/Land/Crystal-Womb Cavern.png', frame: getFramePath('uncommon'),
-    stats: { effect: 'All entities gain +1 CUN while exploring.', expeditionBonus: { cun: 1 } as any }
+    stats: { effect: 'All entities gain +1 CUN while exploring.', expeditionBonus: { cun: 1 } } as LandStats
   },
   {
     id: 'the_sinking_fen', name: 'The Sinking Fen', type: 'land', rarity: 'uncommon', aspect: 'Water',
@@ -788,12 +733,12 @@ export const allCards: Card[] = [
   {
     id: 'the_lytch_kings_folly', name: "The Lytch-King's Folly", type: 'land', rarity: 'rare', aspect: 'Death',
     image: '/Images/Game Art/Land/The Lytch-Kings Folly.png', frame: getFramePath('rare'),
-    stats: { effect: 'Death entities have +2 HP.', expeditionBonus: { hp: 2 } as any }
+    stats: { effect: 'Death entities have +2 HP.', expeditionBonus: { hp: 2 } } as LandStats
   },
   {
     id: 'gallery_of_whispers', name: 'Gallery of Whispers', type: 'land', rarity: 'rare', aspect: 'Air',
     image: '/Images/Game Art/Land/Gallery of Whispers.png', frame: getFramePath('rare'),
-    stats: { effect: 'Air entities have +2 SPD.', expeditionBonus: { spd: 2 } as any }
+    stats: { effect: 'Air entities have +2 SPD.', expeditionBonus: { spd: 2 } } as LandStats
   },
   {
     id: 'the_first_flames_pyre', name: "The First Flame's Pyre", type: 'land', rarity: 'rare', aspect: 'Fire',
@@ -817,7 +762,7 @@ export const allCards: Card[] = [
   {
     id: 'the_silent_library', name: 'The Silent Library', type: 'land', rarity: 'legendary', aspect: 'Void',
     image: '/Images/Game Art/Land/The Silent Library.png', frame: getFramePath('legendary'),
-    stats: { effect: 'All Spell costs reduced by 1 (minimum 1). +3 CUN for all entities.', expeditionBonus: { cun: 3 } as any }
+    stats: { effect: 'All Spell costs reduced by 1 (minimum 1). +3 CUN for all entities.', expeditionBonus: { cun: 3 } } as LandStats
   },
   {
     id: 'the_sneezes_epicenter', name: "The Sneeze's Epicenter", type: 'land', rarity: 'legendary', aspect: 'Void',

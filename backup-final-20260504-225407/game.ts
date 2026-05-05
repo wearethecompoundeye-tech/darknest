@@ -135,7 +135,7 @@ export class Game {
     document.getElementById('forageBtn')?.addEventListener('click', () => import('../systems/familiar-manager.js').then(m => m.forage()));
 
     // NEW BUTTON BINDINGS
-    document.getElementById('traceCircleBtn')?.addEventListener('click', () => import('../minigames/circle-trace.js').then(m => m.initCircleTracing()));
+    document.getElementById('traceCircleBtn')?.addEventListener('click', () => import('../minigames/circle-trace.js').then(m => m.startCircleTracing()));
     document.getElementById('tutorialBtn')?.addEventListener('click', () => import('../systems/tutorial-listeners.js').then(m => m.showTutorial()));
   }
 

@@ -1,0 +1,6 @@
+# Ollama models and large binary files – not tracked
+ollama/
+models/
+*.gguf
+*.bin
+*.safetensors

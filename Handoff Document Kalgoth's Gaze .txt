@@ -1,0 +1,221 @@
+Handoff Document: Kalgoth's Gaze · Darknest
+1. Project Overview
+
+Kalgoth's Gaze is a dark fantasy browser-based survival/crafting game with AI-driven narrative and demon summoning mechanics. The player, bonded with the Seed of Orbex, must gather resources, craft ritual aids, summon and interact with demons, explore a procedurally generated undercrypt maze, and ultimately escape by finding the Serpent's Tear and empowering the ritual circle to 100%.
+
+The game runs entirely client-side in the browser using ES6 modules, HTML5 Canvas, and CSS. Audio is managed via Howler.js, and AI dialogue is optionally provided by a local Ollama instance.
+2. Technical Stack
+Component	Technology
+Frontend Framework	Vanilla JavaScript (ES6 Modules)
+State Management	Centralized state object in game-state.js (reactive via UI functions)
+Audio	Howler.js 2.2.4
+AI Integration	Fetch API to Ollama (/api/chat endpoint)
+Persistence	LocalStorage (kalgothGazeOrbitSave key)
+Styling	Custom CSS with glassmorphism effects and CSS Grid/Flexbox
+Canvas Rendering	Native 2D Canvas API for ritual circle and rune etching
+Build/Deployment	No build step; served statically via PowerShell HTTP server (start-darknest.bat)
+3. Directory Structure
+text
+
+DARKNEST/
+├── index.html                # Main entry point
+├── start-darknest.bat        # Local server launcher
+├── css/
+│   └── styles.css            # All styles (including modals, console, tiles)
+├── js/
+│   ├── main.js               # Application entry, event binding, timer, settings
+│   ├── game-state.js         # Core state, save/load, discovery, progression
+│   ├── ui.js                 # UI rendering, console updates, Tome, Satchel
+│   ├── demons.js             # Summoning, capture, banish, release, destroy, ash
+│   ├── demon-modal.js        # Demon interaction modal with tile-based actions
+│   ├── rituals.js            # Circle tracing and rune etching minigames
+│   ├── crafting.js           # Powder/phial/restorative crafting, study rune
+│   ├── phialBrewing.js       # Cauldron Simon-like memory game (precise brew)
+│   ├── exploration.js        # Maze generation, movement, solo & demon modes
+│   ├── ai-engine.js          # Ollama API calls for narration/dialogue
+│   ├── sfx.js                # Howler.js audio manager (SFX, music, loops)
+│   └── data/
+│       ├── runes.js          # Rune definitions (shapes, bonuses)
+│       ├── demon-traits.js   # Demon traits and effects
+│       └── relics.js         # Relic definitions (partial integration)
+├── assets/
+│   ├── Images/               # All game art (demons, icons, backgrounds)
+│   └── sfx/                  # Sound effect files (MP3)
+
+4. Core Game Mechanics
+4.1 Ritual Circle & Runes
+
+    Circle Tracing: Click nodes in order around a canvas. Quality based on time and line straightness. Successful trace sets circleQuality and enables summoning.
+
+    Rune Etching: Freehand stencil tracing with real‑time coverage/smoothness feedback. Requires selecting a known rune first. Success adds circle integrity and etches rune into a slot.
+
+4.2 Crafting
+
+    Powder: Grinding minigame (mouse circles). Success consumes 1 Moss + 1 Phlegm → 1+ Powder.
+
+    Phial:
+
+        Quick Brew: Simple skill check.
+
+        Precise Brew: Cauldron memory game with escalating rounds (rewards scale with completed rounds).
+
+    Restorative Draught: Instant craft (Wyrm Eye + Banshee Salts + Bone Dust).
+
+    Study Rune: Consumes 5 Moss + 5 Phlegm to learn a random unknown rune.
+
+4.3 Demon Summoning & Interaction
+
+    Summon: Requires Powder + Phial, selected runes, and traced circle. Success chance depends on circle quality, runes, mastery, demon wrath, etc.
+
+    Demon Actions (tile-based modal):
+
+        Command: Dominate for Ichor or rune knowledge.
+
+        Bargain: Offer Ichor for favor and rewards.
+
+        Intimidate: Use Banish Power to force Ichor gain.
+
+        Release: Free demon for permanent max Will increase and favor.
+
+        Destroy: Harvest Ichor and Bone Dust; increases Demon Wrath.
+
+        Blood Empower: Spend Blood Resonance to guarantee next action.
+
+    Capture/Banish: Secondary actions with success chances based on mastery and traits.
+
+    Ash Collection: Appears after certain demon deaths; yields Shadow Resin and Salts.
+
+4.4 Maze Exploration
+
+    Solo Mode: Limited steps (5 + mastery/2), smaller grid, fewer rewards. Access via "Solo Explore" button.
+
+    Demon Mode: Unlimited moves, larger grid, special rooms (Echo Chamber, Blood-Sealed Door, Demon Totem). Access via "Explore Maze" button when demon is bound.
+
+    Goal: Find Serpent's Tear (key to escape).
+
+4.5 Progression & Meta
+
+    Mastery: XP from actions → increases rune slots and provides bonuses.
+
+    Familiar (Whisp): Levels up through petting/foraging; provides passive bonuses.
+
+    Daily Tithe: Pay 5 Ichor each day or suffer health/suspicion penalties.
+
+    Blood Resonance: Regenerates daily; used for guaranteed actions.
+
+    Demon Wrath/Favor: Persistent per-trait modifiers affecting future summons.
+
+5. Audio System (SFX & Music)
+
+    Managed by sfx.js (Howler.js).
+
+    Sound definitions are keyed; looping sounds use startLoop/stopLoop.
+
+    Volume sliders in Settings modal control Master, SFX, and Music.
+
+    Background music: Dropbox URL (WAV). Autoplay requires user interaction.
+
+    Cave drips play randomly at low volume.
+
+Key SFX Files Location: assets/sfx/
+Event	SFX Key / File
+UI Click	UI button Click.mp3
+Summon Success	Ons Summon Demon Laugh.mp3
+Summon Fail	summon fail.mp3
+Powder Grinding Loop	While Grinding.mp3
+Phial Boiling Loop	Phial Boiling.mp3
+Powder Success	powder success.mp3
+Phial Success	phial success.mp3
+Phial Fail	phial fail.mp3
+Rune Etch Success	Rune Etch Success SFX.mp3
+Circle Trace Dot	circle trace dot connect.mp3
+Maze Open	open maze.mp3 + on maze open...
+Game Win	game winner fanfare.mp3
+...	(see sfxDefinitions in sfx.js)
+6. AI Integration (Ollama)
+
+    Endpoint: http://localhost:11434/api/chat
+
+    Models: Default l3.1-rp-hero-bigtalker, fallback llama3.2
+
+    Functions:
+
+        narrateEvent(eventDescription): Atmospheric one‑sentence narration.
+
+        getDemonDialogue(demonName, trait, situation): Trait‑specific demon speech.
+
+        getOrbexVision(): Cryptic hint.
+
+    If Ollama is not running, fallback text is used.
+
+7. Known Issues & Troubleshooting
+7.1 Maze Not Appearing
+
+    Check console for "mazeModal element not found" or "renderMaze called".
+
+    Ensure mazeModal exists in index.html and has correct id.
+
+    Verify startSoloExploration/startDemonExploration are called (button listeners attached).
+
+    CSS: #mazeModal may have display: none overwritten; check styles.
+
+7.2 Demon Action Panel Not Showing
+
+    In ui.js → updateUI(), ensure demonActionPanel.style.display is set to "block" when state.activeDemon is truthy.
+
+    The panel is inside demonManagementCard. If the card is hidden, panel won't show.
+
+7.3 Demon Portrait Stays in Circle After Demon Gone
+
+    Fixed in ui.js: demonOverlay and demonOverlayImg display set to "none" when state.activeDemon is null.
+
+7.4 Audio Not Playing / Autoplay Blocked
+
+    Browser requires user gesture. initAudio is called on first click/keydown.
+
+    If music still doesn't play, check Dropbox URL accessibility or replace with local file.
+
+7.5 SFX Loops Not Stopping
+
+    All minigame modals now call stopLoop("grinding") / stopLoop("phialBoiling") in every exit path.
+
+    Global stopAllLoops() is called when any modal is closed.
+
+7.6 Missing Exports / Module Errors
+
+    Ensure all imports use correct named exports (e.g., playSfx, not playButtonClick).
+
+    Cache may cause stale errors; hard refresh (Ctrl+Shift+R).
+
+7.7 Visual Glitches (Icons Overlapping, Buttons Misaligned)
+
+    CSS fixes have been applied; verify .demon-card .craft-btn styles include flex and proper sizing.
+
+    Image fallback: if icon missing, onerror shows first letter.
+
+8. Enhancement Opportunities
+
+    Relic System: Currently defined in relics.js but not fully integrated (identification, equipping, effects).
+
+    Capture Jar Management: Allow viewing/interacting with captured demons.
+
+    More Demon Traits & Varied AI Dialogue: Expand trait effects and AI prompts.
+
+    Additional Minigames: For restorative draught or study rune.
+
+    Performance: Optimize canvas redraws and DOM updates.
+
+    Mobile Responsiveness: Further refinement of grid layouts for smaller screens.
+
+9. Running the Game Locally
+
+    Ensure all assets are in correct folders (assets/Images/, assets/sfx/).
+
+    Double‑click start-darknest.bat or run in PowerShell:
+    powershell
+
+    .\start-darknest.bat
+
+    Open browser to http://localhost:8000.
+
+    (Optional) Run Ollama with the required models for AI feat

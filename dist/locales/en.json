@@ -1,0 +1,18 @@
+{
+  "game.title": "Kalgoth's Gaze",
+  "menu.new_game": "New Game",
+  "menu.continue": "Continue",
+  "menu.load": "Load",
+  "menu.save": "Save",
+  "menu.settings": "Settings",
+  "menu.exit": "Exit",
+  "status.idle": "Idle",
+  "status.summoning": "Summoning",
+  "status.expedition": "Expedition",
+  "status.gaze_warning": "Gaze Warning",
+  "status.gaze_active": "Gaze Active",
+  "status.game_over": "Game Over",
+  "summon.success": "Summon successful!",
+  "summon.fail": "Summon failed.",
+  "tutorial.welcome": "Welcome, Acolyte."
+}

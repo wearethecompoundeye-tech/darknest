@@ -92,28 +92,28 @@ const BASE_PATH_CONFIGS: Record<string, PathConfig> = {
   'Warded': {
     name: 'Warded Corridor',
     desc: 'Many wards, moderate danger.',
-    icon: '/Images/Game Art/Maze/Path_Warded.png',
+    icon: '/Images/GameArt/Maze/Path_Warded.png',
     wardChance: 0.3, trapChance: 0.15, minionChance: 0.15,
     resourceChance: 0.25, echoChance: 0.1, hollowChance: 0.05
   },
   'Collapsed': {
     name: 'Collapsed Tunnel',
     desc: 'Treacherous, but higher fragment chance.',
-    icon: '/Images/Game Art/Maze/Path_Collapsed.png',
+    icon: '/Images/GameArt/Maze/Path_Collapsed.png',
     wardChance: 0.2, trapChance: 0.35, minionChance: 0.2,
     resourceChance: 0.15, echoChance: 0.05, hollowChance: 0.05
   },
   'Echoing': {
     name: 'Echoing Hall',
     desc: 'Balanced, good for finding echoes.',
-    icon: '/Images/Game Art/Maze/Path_Echoing.png',
+    icon: '/Images/GameArt/Maze/Path_Echoing.png',
     wardChance: 0.2, trapChance: 0.2, minionChance: 0.15,
     resourceChance: 0.2, echoChance: 0.2, hollowChance: 0.05
   },
   'Safe': {
     name: 'Safe Passage',
     desc: 'Low danger, fewer rewards.',
-    icon: '/Images/Game Art/Maze/Path_Safe.png',
+    icon: '/Images/GameArt/Maze/Path_Safe.png',
     wardChance: 0.1, trapChance: 0.1, minionChance: 0.1,
     resourceChance: 0.4, echoChance: 0.15, hollowChance: 0.15
   }
@@ -440,7 +440,7 @@ function handleMinionNode(node: MazeNode): void {
   const minionPower = node.minionPower || 10;
   const minionCard: Card = {
     id: 'minion', name: 'Kalgoth\'s Minion', type: 'entity', rarity: 'common', aspect: 'Void',
-    image: '/Images/Game Art/Creatures/Umbral Mite.png', frame: '/Images/Game Art/Frame Overlays/Common Frame.png',
+    image: '/Images/GameArt/Creatures/Umbral Mite.png', frame: '/Images/GameArt/FrameOverlays/Common Frame.png',
     stats: { hp: minionPower, atk: 3 + Math.floor(gazeIntensity.value/20), spd: 0, cun: 0, def: 0, res: 0, init: 2, loyalty: 100 }
   };
   const playerCard = activeEntityCard;

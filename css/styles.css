@@ -20,7 +20,7 @@ body {
   padding: 0;
   min-height: 100vh;
   background: #05020a;
-  background-image: url('/Images/Game%20Art/UI%20Elements/Main%20Game%20Background%20Image.png');
+  background-image: url('/Images/GameArt/UIElements/Main%20Game%20Background%20Image.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

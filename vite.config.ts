@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/darknest/',
   server: {
     open: false,
     port: 3000,
     strictPort: true,
+  },
+  build: {
+    copyPublicDir: true,
   },
   plugins: [
     {

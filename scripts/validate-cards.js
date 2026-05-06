@@ -1,6 +1,6 @@
 // scripts/validate-cards.js
 // Validates card data against expected structure.
-const fs = require('fs');
+import fs from 'fs';
 
 const cardsPath = 'public/data/cards.json';
 if (!fs.existsSync(cardsPath)) {

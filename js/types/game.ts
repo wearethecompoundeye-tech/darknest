@@ -63,7 +63,7 @@ export type CardType = 'entity' | 'spell' | 'enhancement' | 'land';
 export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type Aspect = 'Void' | 'Fire' | 'Earth' | 'Air' | 'Water' | 'Life' | 'Death' | 'All';
 
-export interface DemonTrait =
+export type DemonTrait =
   | 'Imp'
   | 'Cunning'
   | 'Feral'

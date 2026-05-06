@@ -110,6 +110,100 @@
     overflow: visible !important;
   }
 </style>
+<script>
+(function() {
+    // Base path of your game on GitHub Pages
+    var BASE = '/darknest';
+
+    // Convert any image/audio/fetch URL to the correct relative path
+    function fixPath(url) {
+        if (typeof url !== 'string') return url;
+        // Remove leading slash and fix common casing mistakes
+        url = url.replace(/^\/?(Images|images)\//i, 'images/')
+                 .replace(/^\/?(Audio|audio|Sounds|sfx)\//i, 'audio/');
+        // If the URL isn't absolute and doesn't already start with BASE, prepend BASE
+        if (!url.startsWith('http') && !url.startsWith(BASE + '/')) {
+            if (url.startsWith('/')) {
+                url = BASE + url;
+            } else {
+                url = BASE + '/' + url;
+            }
+        }
+        return url;
+    }
+
+    // 1. Fix all <img> elements already in the DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('img').forEach(function(img) {
+            var src = img.getAttribute('src');
+            if (src) img.setAttribute('src', fixPath(src));
+        });
+    });
+
+    // 2. Intercept new Image() objects
+    var OrigImage = window.Image;
+    window.Image = function() {
+        var img = new OrigImage();
+        var originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src') ||
+                                    Object.getOwnPropertyDescriptor(img, 'src');
+        Object.defineProperty(img, 'src', {
+            get: function() {
+                return originalSrcDescriptor.get ? originalSrcDescriptor.get.call(this) : this.getAttribute('src');
+            },
+            set: function(val) {
+                val = fixPath(val);
+                this.setAttribute('src', val);
+                if (originalSrcDescriptor.set) {
+                    originalSrcDescriptor.set.call(this, val);
+                }
+            }
+        });
+        return img;
+    };
+
+    // 3. Fix CSS background-image urls (if any are inline or in stylesheets)
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) {
+                    var style = node.style;
+                    if (style && style.backgroundImage) {
+                        var match = style.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+                        if (match && match[1]) {
+                            style.backgroundImage = 'url(' + fixPath(match[1]) + ')';
+                        }
+                    }
+                }
+            });
+        });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // 4. Intercept fetch requests (for dynamic image/audio loading)
+    var origFetch = window.fetch;
+    window.fetch = function(input, init) {
+        if (typeof input === 'string') {
+            input = fixPath(input);
+        } else if (input instanceof Request) {
+            // If it's a Request object, we need to create a new one with the fixed URL
+            var url = fixPath(input.url);
+            var newInit = {
+                method: input.method,
+                headers: input.headers,
+                body: input.body,
+                mode: input.mode,
+                credentials: input.credentials,
+                cache: input.cache,
+                redirect: input.redirect,
+                referrer: input.referrer,
+                integrity: input.integrity
+            };
+            input = new Request(url, newInit);
+        }
+        return origFetch.call(this, input, init);
+    };
+})();
+</script>
 </head>
 <body>
     <!-- Splash Screen -->

@@ -23,9 +23,15 @@ const MIME = {
 
 const server = http.createServer((req, res) => {
   let url = req.url.split('?')[0];
+  
+  // Strip base prefix
   if (url.startsWith(BASE + '/')) {
     url = url.slice(BASE.length);
   }
+  
+  // Decode percent-encoded characters (e.g., %20 → space)
+  url = decodeURIComponent(url);
+
   if (url === '/' || url === '') url = '/index.html';
 
   const filePath = path.join(ROOT, url);
@@ -34,6 +40,7 @@ const server = http.createServer((req, res) => {
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
+      // fallback to index.html for SPA
       fs.readFile(path.join(ROOT, 'index.html'), (err2, indexData) => {
         if (err2) { res.writeHead(500); res.end('Server error'); }
         else { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(indexData); }

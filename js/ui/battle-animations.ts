@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/ui/battle-animations.ts
 import { el } from '../core/dom-helper.js';
 import { logger } from '../core/logger.js';
@@ -28,7 +29,7 @@ export async function playBattleCommenceAnimation(enemyCard: Card): Promise<void
     const img = document.createElement('img');
     img.src = enemyCard.image;
     img.alt = enemyCard.name;
-    img.onerror = () => { img.src = '/Images/GameArt/Creatures/Umbral Mite.png'; };
+    img.onerror = () => { img.src = ASSET('Images/GameArt/Creatures/Umbral Mite.png'); };
     revealDiv.appendChild(img);
 
     const frameImg = document.createElement('img');

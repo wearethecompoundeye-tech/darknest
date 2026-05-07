@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <base href="/darknest/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Kalgoth's Gaze · Undercrypt</title>
@@ -107,13 +108,107 @@
     overflow: visible !important;
   }
 </style>
-  <script type="module" crossorigin src="/darknest/assets/index-rTVOu2l3.js"></script>
-  <link rel="stylesheet" crossorigin href="/darknest/assets/index-BjqOw8W2.css">
+<script>
+(function() {
+    // Base path of your game on GitHub Pages
+    var BASE = '/darknest';
+
+    // Convert any image/audio/fetch URL to the correct relative path
+    function fixPath(url) {
+        if (typeof url !== 'string') return url;
+        // Remove leading slash and keep correct folder case (Images, audio)
+        url = url.replace(/^\/?(Images|images)\//i, 'Images/')
+                 .replace(/^\/?(Audio|audio|Sounds|sfx)\//i, 'audio/');
+        // If the URL isn't absolute and doesn't already start with BASE, prepend BASE
+        if (!url.startsWith('http') && !url.startsWith(BASE + '/')) {
+            if (url.startsWith('/')) {
+                url = BASE + url;
+            } else {
+                url = BASE + '/' + url;
+            }
+        }
+        return url;
+    }
+
+    // 1. Fix all <img> elements already in the DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('img').forEach(function(img) {
+            var src = img.getAttribute('src');
+            if (src) img.setAttribute('src', fixPath(src));
+        });
+    });
+
+    // 2. Intercept new Image() objects
+    var OrigImage = window.Image;
+    window.Image = function() {
+        var img = new OrigImage();
+        var originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src') ||
+                                    Object.getOwnPropertyDescriptor(img, 'src');
+        Object.defineProperty(img, 'src', {
+            get: function() {
+                return originalSrcDescriptor.get ? originalSrcDescriptor.get.call(this) : this.getAttribute('src');
+            },
+            set: function(val) {
+                val = fixPath(val);
+                this.setAttribute('src', val);
+                if (originalSrcDescriptor.set) {
+                    originalSrcDescriptor.set.call(this, val);
+                }
+            }
+        });
+        return img;
+    };
+
+    // 3. Fix CSS background-image urls (if any are inline or in stylesheets)
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) {
+                    var style = node.style;
+                    if (style && style.backgroundImage) {
+                        var match = style.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+                        if (match && match[1]) {
+                            style.backgroundImage = 'url(' + fixPath(match[1]) + ')';
+                        }
+                    }
+                }
+            });
+        });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // 4. Intercept fetch requests (for dynamic image/audio loading)
+    var origFetch = window.fetch;
+    window.fetch = function(input, init) {
+        if (typeof input === 'string') {
+            input = fixPath(input);
+        } else if (input instanceof Request) {
+            // If it's a Request object, we need to create a new one with the fixed URL
+            var url = fixPath(input.url);
+            var newInit = {
+                method: input.method,
+                headers: input.headers,
+                body: input.body,
+                mode: input.mode,
+                credentials: input.credentials,
+                cache: input.cache,
+                redirect: input.redirect,
+                referrer: input.referrer,
+                integrity: input.integrity
+            };
+            input = new Request(url, newInit);
+        }
+        return origFetch.call(this, input, init);
+    };
+})();
+</script>
+  <script type="module" crossorigin src="/assets/index-Dt_8Qm0g.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CbPpwo-u.css">
 </head>
 <body>
     <!-- Splash Screen -->
     <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:100000; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-        <img id="splashLogo" src="/darknest/Images/Game Title.png" alt="Kalgoth's Gaze" style="max-width:80%; max-height:80%; object-fit:contain; transition:transform 3s ease;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <img id="splashLogo" src="/Images/Game Title.png" alt="Kalgoth's Gaze" style="max-width:80%; max-height:80%; object-fit:contain; transition:transform 3s ease;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
         <h1 style="display:none; color:#d4af37; font-size:4rem; text-shadow:0 0 20px #8a1a1a; font-family:'Courier New', monospace;">KALGOTH'S GAZE</h1>
     </div>
 
@@ -122,10 +217,10 @@
 <div id="gameContainer" class="game-container" style="display:none; opacity:0;">
         <!-- Icon Bar -->
         <div class="icon-bar">
-            <div class="game-icon" id="satchelIcon" title="Satchel"><img src="/darknest/Images/Satchel.png" alt="Satchel"></div>
-            <div class="game-icon" id="tomeIcon" title="Serpentongue Tome"><img src="/darknest/Images/Serpentongue Tome Icon.png" alt="Tome"></div>
-            <div class="game-icon" id="settingsIcon" title="Settings"><img src="/darknest/Images/Settings Icon.png" alt="Settings"></div>
-            <div class="game-icon" id="captureJar" title="Grimoire"><img src="/darknest/Images/Capture Jar.png" alt="Grimoire"></div>
+            <div class="game-icon" id="satchelIcon" title="Satchel"><img src="/Images/Satchel.png" alt="Satchel"></div>
+            <div class="game-icon" id="tomeIcon" title="Serpentongue Tome"><img src="/Images/Serpentongue Tome Icon.png" alt="Tome"></div>
+            <div class="game-icon" id="settingsIcon" title="Settings"><img src="/Images/Settings Icon.png" alt="Settings"></div>
+            <div class="game-icon" id="captureJar" title="Grimoire"><img src="/Images/Capture Jar.png" alt="Grimoire"></div>
         </div>
 
         <!-- Main Grid Layout -->
@@ -134,7 +229,7 @@
             <div class="panel left-panel">
                 <!-- Maze Entrance Section -->
                 <div class="maze-entrance-card">
-                    <img class="maze-avatar" src="/darknest/Images/GameArt/Maze/Path_Warded.png" alt="Undercrypt">
+                    <img class="maze-avatar" src="/Images/GameArt/Maze/Path_Warded.png" alt="Undercrypt">
                     <div class="maze-info">
                         <h4>THE UNDERCRYPT</h4>
                         <p>Cost: 5 Will | 2 Ichor</p>
@@ -146,9 +241,9 @@
                     <div class="collapsible-header" id="toggleCraftingBtn"><span>⚗️ CRAFTING</span><span class="arrow">▼</span></div>
                     <div class="collapsible-content" id="craftingContent">
                         <div class="crafting-tiles">
-                            <div class="tile" id="craftPowderBtn" title="Craft Powder of Warding (1 Moss + 1 Phlegm)"><img src="/darknest/Images/Mortar.png" alt="Powder"><span class="tile-label">Powder</span></div>
-                            <div class="tile" id="craftPotionBtn" title="Brew Phial of Subjugation (1 Phlegm + 1 Salts)"><img src="/darknest/Images/Cauldron.png" alt="Phial"><span class="tile-label">Phial</span></div>
-                            <div class="tile" id="craftRestorativeBtn" title="Craft Restorative Draught (2 Moss + 2 Phlegm + 1 Salts)"><img src="/darknest/Images/Restorative.png" alt="Restore"><span class="tile-label">Restore</span></div>
+                            <div class="tile" id="craftPowderBtn" title="Craft Powder of Warding (1 Moss + 1 Phlegm)"><img src="/Images/Mortar.png" alt="Powder"><span class="tile-label">Powder</span></div>
+                            <div class="tile" id="craftPotionBtn" title="Brew Phial of Subjugation (1 Phlegm + 1 Salts)"><img src="/Images/Cauldron.png" alt="Phial"><span class="tile-label">Phial</span></div>
+                            <div class="tile" id="craftRestorativeBtn" title="Craft Restorative Draught (2 Moss + 2 Phlegm + 1 Salts)"><img src="/Images/Restorative.png" alt="Restore"><span class="tile-label">Restore</span></div>
                         </div>
                         <div class="crafted-count" id="simpleCraftedList">Powder:0 | Phial:0 | Restore:0</div>
                         <div class="rune-actions">
@@ -240,7 +335,7 @@
 
             <!-- RIGHT PANEL -->
             <div class="panel right-panel">
-                <div class="player-card-large"><img class="player-avatar-large" src="/darknest/Images/Player Icon.png" alt="Avatar"><div class="player-name" id="playerNameDisplay">Survivor</div></div>
+                <div class="player-card-large"><img class="player-avatar-large" src="/Images/Player Icon.png" alt="Avatar"><div class="player-name" id="playerNameDisplay">Survivor</div></div>
                 <div class="collapsible-stats">
                     <div class="collapsible-header" id="toggleStatsBtn"><span>📊 VITALS</span><span class="arrow">▼</span></div>
                     <div class="collapsible-content" id="playerStatsContent">

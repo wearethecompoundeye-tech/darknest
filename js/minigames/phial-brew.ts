@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/minigames/phial-brew.ts
 import {
   ingredients,
@@ -29,7 +30,7 @@ export function startPhialBrewing(onComplete?: (success: boolean, completedRound
       <p>Watch the rune sequence, then repeat it.</p>
       <div style="position:relative; width:300px; height:300px; margin:20px auto;">
         <div id="cauldronIcon" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100px; height:100px;">
-          <img src="/Images/Cauldron.png" alt="Cauldron" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+          <img src=ASSET('Images/Cauldron.png') alt="Cauldron" style="width:100%; height:100%; object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
           <span style="display:none; font-size:5rem;">🧪</span>
         </div>
         <div id="runeRing" style="position:relative; width:100%; height:100%;">

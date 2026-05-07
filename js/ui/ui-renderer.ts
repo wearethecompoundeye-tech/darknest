@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/ui/ui-renderer.ts
 // Main UI rendering with concentric rings and card slot bar
 // Fixed: Demon overlay z-index, card frame alignment, Whisp cleanup
@@ -389,7 +390,7 @@ function updateOrbexPanel(): void {
   let fragmentsHtml = '';
   for (let i = 0; i < maxFragments; i++) {
     const filled = i < fragmentCount;
-    fragmentsHtml += `<img src="/Images/Orbex_Fragment${filled ? '' : '_Corrupted'}.png" style="width:24px; height:24px; margin:2px;" title="${filled ? 'Fragment Reclaimed' : 'Fragment Missing'}">`;
+    fragmentsHtml += `<img src="${ASSET(`Images/Orbex_Fragment${filled ? '' : '_Corrupted'}.png`)}" style="width:24px; height:24px; margin:2px;" title="${filled ? 'Fragment Reclaimed' : 'Fragment Missing'}">`;
   }
 
   let boonsHtml = '';

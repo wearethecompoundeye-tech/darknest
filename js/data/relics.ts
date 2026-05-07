@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/data/relics.ts
 export interface Relic {
   id: string;
@@ -23,7 +24,7 @@ export const relics: Relic[] = [
     description: '+5% summon chance, -5% Noose gain',
     effect: { summonChance: 5, suspicionReduction: 5 },
     lore: 'A band of shadow-stuff that whispers secrets of the void.',
-    image: '/Images/GameArt/Enhancements/Ring of the Last Acolyte.png'
+    image: ASSET('Images/GameArt/Enhancements/Ring of the Last Acolyte.png')
   },
   {
     id: 'orbex_heartseed',
@@ -31,7 +32,7 @@ export const relics: Relic[] = [
     description: '+10 max Will, +1 Will regen',
     effect: { maxWill: 10, willRegen: 1 },
     lore: 'A crystallized fragment of Orbex, still pulsing with life.',
-    image: '/Images/GameArt/Enhancements/Orbex Heart-Shard.png'
+    image: ASSET('Images/GameArt/Enhancements/Orbex Heart-Shard.png')
   },
   {
     id: 'void_touched_focus',
@@ -39,7 +40,7 @@ export const relics: Relic[] = [
     description: '+10% find bonus in maze',
     effect: { findBonus: 10 },
     lore: 'A shard of obsidian that sharpens perception.',
-    image: '/Images/GameArt/Enhancements/Void-Touched Focus.png'
+    image: ASSET('Images/GameArt/Enhancements/Void-Touched Focus.png')
   },
   {
     id: 'tithe_eaters_coin',
@@ -47,7 +48,7 @@ export const relics: Relic[] = [
     description: 'Tithe costs 1 less Ichor',
     effect: { ichorDiscount: 1 },
     lore: 'The Prophets\' collectors always miscount in your favor.',
-    image: '/Images/GameArt/Enhancements/Chain of the Betrayer.png'
+    image: ASSET('Images/GameArt/Enhancements/Chain of the Betrayer.png')
   },
   {
     id: 'iron_will_torc',
@@ -55,7 +56,7 @@ export const relics: Relic[] = [
     description: '+15 max Will',
     effect: { maxWill: 15 },
     lore: 'Heavy is the head that wears this crown of resolve.',
-    image: '/Images/GameArt/Enhancements/Iron Will.png'
+    image: ASSET('Images/GameArt/Enhancements/Iron Will.png')
   },
   {
     id: 'spectral_lens',
@@ -63,7 +64,7 @@ export const relics: Relic[] = [
     description: '+8% summon chance',
     effect: { summonChance: 8 },
     lore: 'It reveals the threads between worlds.',
-    image: '/Images/GameArt/Enhancements/Spectral Lens.png'
+    image: ASSET('Images/GameArt/Enhancements/Spectral Lens.png')
   }
 ];
 

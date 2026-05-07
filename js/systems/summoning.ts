@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 import { DEFAULT_ENTITY_CARD } from '../core/defaults.js';
 // js/systems/summoning.ts
 // Card-based summoning system with tactical battles
@@ -206,8 +207,8 @@ export function summonEntity(): void {
       type: 'entity',
       rarity: 'common',
       aspect: 'Void',
-      image: '/Images/GameArt/Creatures/Umbral Mite.png',
-      frame: '/Images/GameArt/FrameOverlays/Common Frame.png',
+      image: ASSET('Images/GameArt/Creatures/Umbral Mite.png'),
+      frame: ASSET('Images/GameArt/FrameOverlays/Common Frame.png'),
       stats: { hp: 5, atk: 2, spd: 3, cun: 2, def: 0, res: 10, init: 3, loyalty: 70 },
       abilities: [{ name: 'Void Syphon', type: 'combat', trigger: 'onDamage', effect: 'Heals 1 HP when dealing damage.' }]
     } as Card;

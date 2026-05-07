@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/ui/satchel.ts
 import { state, ingredients, crafted, ownedRelics, equippedRelics, equipRelic, unequipRelic, relicBonuses } from '../core/state-signals.js';
 import { relics, relicSlots, getRelicById } from '../data/relics.js';
@@ -24,7 +25,7 @@ function renderSatchelContent(): void {
   const html = `
     <div class="satchel-container">
       <div class="satchel-player-section">
-        <img src="/Images/Player Icon.png" class="satchel-player-img" alt="Player">
+        <img src=ASSET('Images/Player Icon.png') class="satchel-player-img" alt="Player">
         <div class="satchel-player-stats">
           <h3>${state.playerName}</h3>
           <div class="stat-row"><span>❤️ Health</span><span>${state.health}/${100 + (relicBonuses.value.health || 0)}</span></div>

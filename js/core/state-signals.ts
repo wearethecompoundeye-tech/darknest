@@ -1,3 +1,4 @@
+import { ASSET } from '../utils/assets.js';
 // js/core/state-signals.ts
 // Central reactive state for Kalgoth's Gaze
 // Fixed: activeDemon cleanup, starting resources validation
@@ -153,13 +154,13 @@ const initialState: GameState = {
   alcovesDiscovered: 0,
   mazePathsUnlocked: ['Warded', 'Safe'],
   demonImages: {
-    imp: ['/Images/imp_1.png', '/Images/imp_2.png', '/Images/imp_3.png'],
-    feral: ['/Images/Lesser_Feral.png', '/Images/Lesser_Feral_2.png'],
-    cunning: ['/Images/Lesser_Cunning.png'],
-    ancient: ['/Images/Lesser_Ancient.png'],
-    volatile: ['/Images/Lesser_Volatile.png'],
-    shadow: ['/Images/Lesser_Shadow.png'],
-    kin: ['/Images/Kalgoths_Kin_1.png', '/Images/Kalgoths_Kin_2.png']
+    imp: [ASSET('Images/imp_1.png'), ASSET('Images/imp_2.png'), ASSET('Images/imp_3.png')],
+    feral: [ASSET('Images/Lesser_Feral.png'), ASSET('Images/Lesser_Feral_2.png')],
+    cunning: [ASSET('Images/Lesser_Cunning.png')],
+    ancient: [ASSET('Images/Lesser_Ancient.png')],
+    volatile: [ASSET('Images/Lesser_Volatile.png')],
+    shadow: [ASSET('Images/Lesser_Shadow.png')],
+    kin: [ASSET('Images/Kalgoths_Kin_1.png'), ASSET('Images/Kalgoths_Kin_2.png')]
   },
   kalgothsNoose: 10,
   circlePower: 0,

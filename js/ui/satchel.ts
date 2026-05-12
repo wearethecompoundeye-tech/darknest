@@ -365,11 +365,12 @@ function renderSatchelContent(): void {
   const playerWill = state.will;
   const maxWill = state.maxWill;
   const summonBonus = relicBonuses.value.summonChance || 0;
+  const playerIconUrl = `${import.meta.env.BASE_URL}Images/Player Icon.png`;
 
   const html = `
     <div class="satchel-container">
       <div class="satchel-player-section">
-        <img src="/Images/Player Icon.png" class="satchel-player-img" alt="Player">
+        <img src="${playerIconUrl}" class="satchel-player-img" alt="Player">
         <div class="satchel-player-stats">
           <h3>${playerName}</h3>
           <div class="stat-row"><span>❤️ Health</span><span>${playerHealth}/${playerMaxHealth}</span></div>

@@ -63,25 +63,25 @@ interface PathConfig {
 const BASE_PATH_CONFIGS: Record<string, PathConfig> = {
   Warded: {
     name: 'Warded Corridor', desc: 'Many wards, moderate loot.',
-    icon: '/Images/Game Art/Maze/Path_Warded.png',
+    icon: `${import.meta.env.BASE_URL}Images/Game Art/Maze/Path_Warded.png`,
     wardChance: 0.3, trapChance: 0.15, minionChance: 0.15,
     resourceChance: 0.25, echoChance: 0.1, hollowChance: 0.05
   },
   Collapsed: {
     name: 'Collapsed Tunnel', desc: 'Dangerous, higher fragment odds.',
-    icon: '/Images/Game Art/Maze/Path_Collapsed.png',
+    icon: `${import.meta.env.BASE_URL}Images/Game Art/Maze/Path_Collapsed.png`,
     wardChance: 0.2, trapChance: 0.35, minionChance: 0.2,
     resourceChance: 0.15, echoChance: 0.05, hollowChance: 0.05
   },
   Echoing: {
     name: 'Echoing Hall', desc: 'Balanced, many echoes.',
-    icon: '/Images/Game Art/Maze/Path_Echoing.png',
+    icon: `${import.meta.env.BASE_URL}Images/Game Art/Maze/Path_Echoing.png`,
     wardChance: 0.2, trapChance: 0.2, minionChance: 0.15,
     resourceChance: 0.2, echoChance: 0.2, hollowChance: 0.05
   },
   Safe: {
     name: 'Safe Passage', desc: 'Few threats, good resources.',
-    icon: '/Images/Game Art/Maze/Path_Safe.png',
+    icon: `${import.meta.env.BASE_URL}Images/Game Art/Maze/Path_Safe.png`,
     wardChance: 0.08, trapChance: 0.08, minionChance: 0.08,
     resourceChance: 0.5, echoChance: 0.1, hollowChance: 0.1
   }
@@ -185,14 +185,14 @@ function generateMaze(pathId: string): MazeNode[][] {
 /* ── UI helper ─────────────────────────────────────────────────── */
 function getNodeIcon(type: NodeType): string {
   switch (type) {
-    case NodeType.ENTRANCE: return '/Images/Maze Door.png';
-    case NodeType.EXIT:     return '/Images/Maze Door.png';
-    case NodeType.RESOURCE: return '/Images/Game Art/Maze/Resource.png';
-    case NodeType.WARD:     return '/Images/Icon_Ward.png';
-    case NodeType.TRAP:     return '/Images/Icon_Trap.png';
-    case NodeType.MINION:   return '/Images/Kalgoths_Minion_01.png';
-    case NodeType.ECHO:     return '/Images/Wisp Icon.png';
-    case NodeType.HOLLOW_LAIR: return '/Images/Game Art/Maze/Hollow Lair.png';
+    case NodeType.ENTRANCE: return `${import.meta.env.BASE_URL}Images/Maze Door.png`;
+    case NodeType.EXIT:     return `${import.meta.env.BASE_URL}Images/Maze Door.png`;
+    case NodeType.RESOURCE: return `${import.meta.env.BASE_URL}Images/Game Art/Maze/Resource.png`;
+    case NodeType.WARD:     return `${import.meta.env.BASE_URL}Images/Icon_Ward.png`;
+    case NodeType.TRAP:     return `${import.meta.env.BASE_URL}Images/Icon_Trap.png`;
+    case NodeType.MINION:   return `${import.meta.env.BASE_URL}Images/Kalgoths_Minion_01.png`;
+    case NodeType.ECHO:     return `${import.meta.env.BASE_URL}Images/Wisp Icon.png`;
+    case NodeType.HOLLOW_LAIR: return `${import.meta.env.BASE_URL}Images/Game Art/Maze/Hollow Lair.png`;
     default: return '';
   }
 }
@@ -513,7 +513,7 @@ function handleMinion(node: MazeNode): void {
 
   const minionCard: Card = {
     id: 'minion', name: "Kalgoth's Minion", type: 'entity', rarity: 'common', aspect: 'Void',
-    image: '/Images/Kalgoths_Minion_01.png', frame: '/Images/Game Art/Frame Overlays/Common Frame.png',
+    image: `${import.meta.env.BASE_URL}Images/Kalgoths_Minion_01.png`, frame: `${import.meta.env.BASE_URL}Images/Game Art/Frame Overlays/Common Frame.png`,
     stats: {
       hp: minionHP, atk: minionAtk,
       spd: 0, cun: 0, def: 0, res: 0, init: 2, loyalty: 100
@@ -582,7 +582,7 @@ function handleHollow(node: MazeNode): void {
   const fragIdx = node.hollowFragmentIndex || orbexFragments.value + 1;
   openWillDuel({
     hollowName: `Hollow Acolyte (Fragment ${fragIdx})`,
-    hollowPortrait: '/Images/Hollow_Portrait.png',
+    hollowPortrait: `${import.meta.env.BASE_URL}Images/Hollow_Portrait.png`,
     fragmentIndex: fragIdx,
     baseResistance: 15 + fragIdx * 2 + Math.floor(gazeIntensity.value / 15),
     onVictory: () => {

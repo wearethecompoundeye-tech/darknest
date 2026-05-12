@@ -199,7 +199,8 @@ function updateOrbexPanel(): void {
   const panel = getEl('orbexPanel'); if (!panel) return;
   const fc = orbexFragments.value, max = maxOrbexFragments.value;
   let fragsHtml = '';
-  for (let i = 0; i < max; i++) fragsHtml += `<img src="/Images/Orbex_Fragment${i < fc ? '' : '_Corrupted'}.png" style="width:24px;height:24px;margin:2px;">`;
+  const orbexBase = `${import.meta.env.BASE_URL}Images/Orbex_Fragment`;
+  for (let i = 0; i < max; i++) fragsHtml += `<img src="${orbexBase}${i < fc ? '' : '_Corrupted'}.png" style="width:24px;height:24px;margin:2px;">`;
   let boonsHtml = ''; orbexBoons.value.forEach(b => boonsHtml += `<span style="background:#1a0a0a;padding:2px 6px;border-radius:12px;font-size:0.7rem;">${b}</span>`);
   let next = fc===0?'Seek the first Acolyte alcove.':fc===1?'One fragment reclaimed.':fc===2?'Two fragments.':fc===3?'Three fragments. Halfway there.':fc===4?'Four fragments.':fc===5?'Five fragments. One remains.':'Orbex is whole. Confront Kalgoth.';
   panel.innerHTML = `

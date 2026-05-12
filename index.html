@@ -8,11 +8,12 @@
     <link rel="stylesheet" href="css/battle-animations.css">
     <link rel="stylesheet" href="css/maze-corruption.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+
 </head>
 <body>
     <!-- Splash Screen -->
     <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:100000; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-        <img id="splashLogo" src="/Images/Game Title.png" alt="Kalgoth's Gaze" style="max-width:80%; max-height:80%; object-fit:contain; transition:transform 3s ease;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <img id="splashLogo" src="Images/Game Title.png" alt="Kalgoth's Gaze" style="max-width:80%; max-height:80%; object-fit:contain; transition:transform 3s ease;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
         <h1 style="display:none; color:#d4af37; font-size:4rem; text-shadow:0 0 20px #8a1a1a; font-family:'Courier New', monospace;">KALGOTH'S GAZE</h1>
     </div>
 
@@ -21,10 +22,10 @@
     <div id="gameContainer" class="game-container" style="display:none; opacity:0;">
         <!-- Icon Bar -->
         <div class="icon-bar">
-            <div class="game-icon" id="satchelIcon" title="Satchel"><img src="/Images/Satchel.png" alt="Satchel"></div>
-            <div class="game-icon" id="tomeIcon" title="Serpentongue Tome"><img src="/Images/Serpentongue Tome Icon.png" alt="Tome"></div>
-            <div class="game-icon" id="settingsIcon" title="Settings"><img src="/Images/Settings Icon.png" alt="Settings"></div>
-            <div class="game-icon" id="captureJar" title="Grimoire"><img src="/Images/Capture Jar.png" alt="Grimoire"></div>
+            <div class="game-icon" id="satchelIcon" title="Satchel"><img src="Images/Satchel.png" alt="Satchel"></div>
+            <div class="game-icon" id="tomeIcon" title="Serpentongue Tome"><img src="Images/Serpentongue Tome Icon.png" alt="Tome"></div>
+            <div class="game-icon" id="settingsIcon" title="Settings"><img src="Images/Settings Icon.png" alt="Settings"></div>
+            <div class="game-icon" id="captureJar" title="Grimoire"><img src="Images/Capture Jar.png" alt="Grimoire"></div>
         </div>
 
         <!-- Main Grid Layout -->
@@ -32,7 +33,7 @@
             <!-- LEFT PANEL -->
             <div class="panel left-panel">
                 <div class="maze-entrance-card">
-                    <img class="maze-avatar" src="/Images/Game Art/Maze/Path_Warded.png" alt="Undercrypt">
+                    <img class="maze-avatar" src="Images/Game Art/Maze/Path_Warded.png" alt="Undercrypt">
                     <div class="maze-info">
                         <h4>THE UNDERCRYPT</h4>
                         <p>Cost: 5 Will | 2 Ichor</p>
@@ -44,9 +45,9 @@
                     <div class="collapsible-header" id="toggleCraftingBtn"><span>⚗️ CRAFTING</span><span class="arrow">▼</span></div>
                     <div class="collapsible-content" id="craftingContent">
                         <div class="crafting-tiles">
-                            <div class="tile" id="craftPowderBtn" title="Craft Powder of Warding (1 Moss + 1 Phlegm)"><img src="/Images/Mortar.png" alt="Powder"><span class="tile-label">Powder</span></div>
-                            <div class="tile" id="craftPotionBtn" title="Brew Phial of Subjugation (1 Phlegm + 1 Salts)"><img src="/Images/Cauldron.png" alt="Phial"><span class="tile-label">Phial</span></div>
-                            <div class="tile" id="craftRestorativeBtn" title="Craft Restorative Draught (2 Moss + 2 Phlegm + 1 Salts)"><img src="/Images/Restorative.png" alt="Restore"><span class="tile-label">Restore</span></div>
+                            <div class="tile" id="craftPowderBtn" title="Craft Powder of Warding (1 Moss + 1 Phlegm)"><img src="Images/Mortar.png" alt="Powder"><span class="tile-label">Powder</span></div>
+                            <div class="tile" id="craftPotionBtn" title="Brew Phial of Subjugation (1 Phlegm + 1 Salts)"><img src="Images/Cauldron.png" alt="Phial"><span class="tile-label">Phial</span></div>
+                            <div class="tile" id="craftRestorativeBtn" title="Craft Restorative Draught (2 Moss + 2 Phlegm + 1 Salts)"><img src="Images/Restorative.png" alt="Restore"><span class="tile-label">Restore</span></div>
                         </div>
                         <div class="crafted-count" id="simpleCraftedList">Powder:0 | Phial:0 | Restore:0</div>
                         <div class="rune-actions">
@@ -130,7 +131,7 @@
 
             <!-- RIGHT PANEL -->
             <div class="panel right-panel">
-                <div class="player-card-large"><img class="player-avatar-large" src="/Images/Player Icon.png" alt="Avatar"><div class="player-name" id="playerNameDisplay">Survivor</div></div>
+                <div class="player-card-large"><img class="player-avatar-large" src="Images/Player Icon.png" alt="Avatar"><div class="player-name" id="playerNameDisplay">Survivor</div></div>
                 <div class="collapsible-stats">
                     <div class="collapsible-header" id="toggleStatsBtn"><span>📊 VITALS</span><span class="arrow">▼</span></div>
                     <div class="collapsible-content" id="playerStatsContent">

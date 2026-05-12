@@ -53,7 +53,7 @@ export function showGazeUI(phase: 'warning' | 'active'): void {
 }
 
 function buildActiveUI(): string {
-  const avatarSrc = '/Images/Player Icon.png';
+  const avatarSrc = `${import.meta.env.BASE_URL}Images/Player Icon.png`;
   return `
     <div id="gazeBackground" style="position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(139,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%); pointer-events:none; transition:background 1s ease;"></div>
     
@@ -268,7 +268,7 @@ function updateWardVisuals(): void {
         animation: wardSpin 3s linear infinite;
       `;
       const img = document.createElement('img');
-      img.src = `/Images/Game Art/Wards/Ward (${wardTypes[i]}).png`;
+      img.src = `${import.meta.env.BASE_URL}Images/Game Art/Wards/Ward (${wardTypes[i]}).png`;
       img.style.cssText = 'width:100%; height:100%; object-fit:contain; mix-blend-mode:screen; filter: drop-shadow(0 0 12px #a0d07a);';
       inner.appendChild(img);
       wardDiv.appendChild(inner);

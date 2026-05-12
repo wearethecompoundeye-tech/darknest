@@ -33,6 +33,7 @@ export function startPhialBrewing(
   notifyMinigame(true, 'cauldron-brew');
 
   // ── Build overlay ──────────────────────────────────────────
+  const cauldronUrl = `${import.meta.env.BASE_URL}Images/Cauldron.png`;
   const overlay = document.createElement("div");
   overlay.className = "modal";
   overlay.style.display = "flex";
@@ -56,7 +57,7 @@ export function startPhialBrewing(
       <p id="boilStatus">Precision: <span style="color:#d4af37;">0%</span> · In Zone: <span id="inZonePercent" style="color:#7acd3a;">0%</span></p>
       <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin:12px 0;">
         <span>Phials Earned:</span>
-        <div id="bonusVisual" style="width:28px; height:28px; background:url('/Images/Cauldron.png') center/contain no-repeat; filter: drop-shadow(0 0 6px #ffd700);"></div>
+         <div id="bonusVisual" style="width:28px; height:28px; background:url(${cauldronUrl}) center/contain no-repeat; filter: drop-shadow(0 0 6px #ffd700);"></div>
         <span id="bonusCount" style="font-size:1.4rem; color:#ffd700; font-weight:bold;">0</span>
       </div>
       <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">

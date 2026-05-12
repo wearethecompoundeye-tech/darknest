@@ -41,7 +41,7 @@ export function renderBandolierSlots(): void {
 
     if (slotId === 'restorativeDraught') {
       slotDiv.innerHTML = `
-        <img src="/Images/Restorative.png" style="width:32px; height:32px; object-fit:contain;">
+        <img src="``${import.meta.env.BASE_URL}Images/Restorative.png``" style="width:32px; height:32px; object-fit:contain;">
         <span style="margin-top:2px;">Draught</span>
       `;
       slotDiv.addEventListener('click', () => {

@@ -1,74 +1,62 @@
-// js/data/relics.ts
+// js/data/relics.ts – Complete relic registry with correct image paths
+import { getCardById, type Card } from './cards.js';
+
+export const relicSlots = 3;
+
 export interface Relic {
   id: string;
   name: string;
   description: string;
-  effect: {
-    maxWill?: number;
-    willRegen?: number;
-    health?: number;
-    summonChance?: number;
-    suspicionReduction?: number;
-    findBonus?: number;
-    ichorDiscount?: number;
-  };
   lore: string;
   image: string;
+  effect?: string;
 }
 
 export const relics: Relic[] = [
   {
-    id: 'ring_of_shadows',
-    name: 'Ring of Shadows',
-    description: '+5% summon chance, -5% Noose gain',
-    effect: { summonChance: 5, suspicionReduction: 5 },
-    lore: 'A band of shadow-stuff that whispers secrets of the void.',
+    id: 'ring_of_the_last_acolyte',
+    name: 'Ring of the Last Acolyte',
+    description: '+5 loyalty, +1 cun',
+    lore: 'Still warm from the first betrayal.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Ring of the Last Acolyte.png`
   },
   {
-    id: 'orbex_heartseed',
-    name: 'Orbex Heartseed',
-    description: '+10 max Will, +1 Will regen',
-    effect: { maxWill: 10, willRegen: 1 },
-    lore: 'A crystallized fragment of Orbex, still pulsing with life.',
+    id: 'orbex_heart_shard',
+    name: 'Orbex Heart-Shard',
+    description: '+3 Will regeneration per day',
+    lore: 'A sliver of the shattered god.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Orbex Heart-Shard.png`
   },
   {
     id: 'void_touched_focus',
     name: 'Void-Touched Focus',
-    description: '+10% find bonus in maze',
-    effect: { findBonus: 10 },
-    lore: 'A shard of obsidian that sharpens perception.',
+    description: '+2 cun to equipped entity',
+    lore: 'Gazes back into the void.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Void-Touched Focus.png`
   },
   {
-    id: 'tithe_eaters_coin',
-    name: 'Tithe-Eater\'s Coin',
-    description: 'Tithe costs 1 less Ichor',
-    effect: { ichorDiscount: 1 },
-    lore: 'The Prophets\' collectors always miscount in your favor.',
+    id: 'chain_of_the_betrayer',
+    name: 'Chain of the Betrayer',
+    description: 'Negate one trap per maze run',
+    lore: 'Links to a forsaken oath.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Chain of the Betrayer.png`
   },
   {
-    id: 'iron_will_torc',
-    name: 'Iron Will Torc',
-    description: '+15 max Will',
-    effect: { maxWill: 15 },
-    lore: 'Heavy is the head that wears this crown of resolve.',
+    id: 'iron_will',
+    name: 'Iron Will',
+    description: '+2 Max Will',
+    lore: 'Forged in the Gaze.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Iron Will.png`
   },
   {
     id: 'spectral_lens',
     name: 'Spectral Lens',
-    description: '+8% summon chance',
-    effect: { summonChance: 8 },
-    lore: 'It reveals the threads between worlds.',
+    description: 'See hidden maze nodes',
+    lore: 'Reveals what the Gaze hides.',
     image: `${import.meta.env.BASE_URL}Images/Game Art/Enhancements/Spectral Lens.png`
   }
 ];
 
-export const relicSlots = 3;
-
 export function getRelicById(id: string): Relic | undefined {
-  return relics.find(r => r.id === id);
+  return relics.find(relic => relic.id === id);
 }

@@ -103,6 +103,7 @@ function createDuelModal(): HTMLDivElement {
   modal.style.alignItems = 'center';
 
   const playerAvatarUrl = `${import.meta.env.BASE_URL}Images/Player Icon.png`;
+
   modal.innerHTML = `
     <div class="modal-content duel-content" style="max-width:700px; width:95%; background:#0a0508; border:2px solid #6a4a3a; border-radius:32px; padding:24px; box-shadow:0 0 0 1px #8a7a5a inset, 0 20px 40px #000; color:#e0d8cc;">
       <h3 style="margin:0 0 20px; color:#b8a890; text-align:center; text-shadow:0 0 10px #5a4a3a;">🌑 WILL DUEL 🌑</h3>

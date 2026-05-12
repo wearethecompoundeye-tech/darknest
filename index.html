@@ -8,9 +8,6 @@
     <link rel="stylesheet" href="css/battle-animations.css">
     <link rel="stylesheet" href="css/maze-corruption.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-    <style id="circle-no-clip">
-      .circle-wrapper, .ritual-circle { overflow: visible !important; }
-    </style>
 </head>
 <body>
     <!-- Splash Screen -->
@@ -79,13 +76,9 @@
                 <div class="collapsible-stats">
                     <div class="collapsible-header" id="toggleBandolierBtn"><span>🎒 BANDOLIER</span><span class="arrow">▼</span></div>
                     <div class="collapsible-content" id="bandolierContent">
-                        <p style="font-size:0.7rem; margin-bottom:8px;">Assign consumables for the Gaze:</p>
-                        <div id="bandolierSlots" style="display:flex; gap:8px; justify-content:center;">
-                            <div class="bandolier-slot" data-slot="0" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 1</div>
-                            <div class="bandolier-slot" data-slot="1" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 2</div>
-                            <div class="bandolier-slot" data-slot="2" style="width:60px; height:60px; background:#1c120c; border:2px solid #c8b890; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:0.7rem; color:#f0e8d8;">Slot 3</div>
-                        </div>
-                        <p style="font-size:0.6rem; margin-top:8px;">Click a slot, then click an item in Satchel to assign.</p>
+                        <p style="font-size:0.7rem; margin-bottom:8px;">Equip a Restorative Draught before the Gaze:</p>
+                        <div id="bandolierSlots" style="display:flex; gap:8px; justify-content:center;"></div>
+                        <p style="font-size:0.6rem; margin-top:8px;">Click an empty slot to equip a Draught. Click a filled slot to use it during a Gaze.</p>
                     </div>
                 </div>
 
@@ -116,16 +109,16 @@
                         <canvas id="circleCanvas" width="440" height="440"></canvas>
                         <div id="ritualHalo" class="ritual-halo"></div>
                         <div class="rune-slots"><div class="rune-slot slot1" id="slot1"><canvas width="52" height="52"></canvas></div><div class="rune-slot slot2" id="slot2"><canvas width="52" height="52"></canvas></div><div class="rune-slot slot3" id="slot3"><canvas width="52" height="52"></canvas></div></div>
-                        <div class="demon-overlay" id="demonOverlay"><img id="demonOverlayImg" src="" alt="Entity"></div>
                     </div>
                     <button class="craft-btn" id="traceCircleBtn" style="margin-top:10px;">⭕ Trace Circle</button>
                 </div>
+
+                <!-- New unified ritual button -->
+                <button class="ritual-btn craft-btn" id="ritualBtn" style="margin-top:8px;">🌑 Ritual</button>
                 <button class="invoke-btn" id="summonBtn">🔺 SUMMON</button>
 
                 <div class="card-deck-section">
-                    <div class="card-deck-header">
-                        <span>🃏 Active Deck</span>
-                    </div>
+                    <div class="card-deck-header"><span>🃏 Active Deck</span></div>
                     <div id="cardSlotsContainer" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;"></div>
                 </div>
 
@@ -156,7 +149,6 @@
                 <div class="sundial"><span>⏳ Day</span><div class="progress-bar" style="flex:1;"><div id="dayProgressFill" class="progress-fill" style="width:100%;"></div></div><span id="timerDisplay">10:00</span></div>
                 <div class="stat-row"><span>📦 Quota</span><span id="quotaRemaining">2</span></div>
                 <div id="orbexPanel"></div>
-
                 <div class="demon-card">
                     <div style="display:flex; align-items:center; gap:8px;"><span style="font-size:1.5rem;">🜁</span><div id="demonArea" style="flex:1;">🌀 No entity bound</div></div>
                 </div>

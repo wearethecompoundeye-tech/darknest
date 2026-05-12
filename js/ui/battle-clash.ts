@@ -1,15 +1,17 @@
-// js/ui/battle-clash.ts – Physics‑enhanced clash with spring motion, pooled particles, and audio sync.
-import { type Card } from '../data/cards.js';
-import { playSfx, startLoop } from '../audio/sfx.js';
-import { emitParticles } from './particle-system.js';
+// js/ui/battle-clash.ts – Fluid, cinematic card clash
+// Dense particle impact, pool‑based SFX, reusable stage for seamless battle transition.
+// Uses lightweight DOM particles for high count without canvas overhead.
+
+import { playPool, playSfx, startLoop, stopLoop } from '../audio/sfx.js';
+import type { Card } from '../data/cards.js';
 
 const CONFIG = {
   duration: {
     flipIn: 300,
-    pushIn: 1250,
-    clash: 250,
-    pushOut: 800,
-    fadeOut: 400,
+    pushIn: 900,
+    clash: 200,
+    pushOut: 700,
+    fadeOut: 300,
   },
   positions: {
     startOffset: 350,
@@ -20,24 +22,17 @@ const CONFIG = {
   scale: {
     start: 0.7,
     idle: 1.05,
-    clash: 1.35,
+    clash: 1.25,
     end: 1.1,
   },
   rotation: {
     start: 25,
     end: 3,
   },
-  particleCount: 150,          // reused for pooled runic burst
+  particleCount: 300,          // dense burst
   spring: {
-    bounce: 1.8,
-    decay: 12,
-  },
-  easing: {
-    flipIn: 'cubic-bezier(0.34, 1.56, 0.64, 1)',  // easeOutBack
-    pushIn: 'ease-in-out',
-    shake: 'ease-out',
-    pushOut: 'ease-in-out',
-    fadeOut: 'ease-in-out',
+    bounce: 1.4,
+    decay: 10,
   },
 };
 
@@ -45,32 +40,28 @@ let clashEnabled = true;
 export function setClashEnabled(enabled: boolean) { clashEnabled = enabled; }
 export function isClashEnabled(): boolean { return clashEnabled; }
 
+// ── Injected CSS keyframes ─────────────────────────────────────────
 function injectStyles() {
   if (document.getElementById('clash-keyframes')) return;
   const style = document.createElement('style');
   style.id = 'clash-keyframes';
   style.textContent = `
-    @keyframes flashBlast {
-      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-      10%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      25%  { opacity: 0.8; transform: translate(-50%, -50%) scale(0.9); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+    @keyframes clashFlash {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+      15%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      30%  { opacity: 0.7; transform: translate(-50%, -50%) scale(0.9); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
     }
-    @keyframes auraPulse {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50%      { opacity: 0.6; transform: scale(1.05); }
+    @keyframes clashParticleFly {
+      0%   { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
     }
-    @keyframes auraDrift {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
+    @keyframes cardLand {
+      0%   { transform: translate(-50%, -50%) rotateY(var(--rot)) scale(var(--scl)); opacity: 0; }
+      100% { transform: translate(-50%, -50%) rotateY(0) scale(1); opacity: 1; }
     }
-    @keyframes landingDust {
-      0%   { transform: translate(0,0) scale(0); opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) scale(1.5); opacity: 0; }
-    }
-    @keyframes parallaxShake {
-      0%   { transform: translate(0,0) scale(1); }
-      100% { transform: translate(var(--sx), var(--sy)) scale(var(--ss)); }
+    @keyframes cardPushOut {
+      to { transform: translate(-50%, -50%) translateX(var(--tx)) scale(var(--scl)) rotateY(var(--rot)); opacity: 0.4; }
     }
     @media (prefers-reduced-motion: reduce) {
       .battle-commencement-active,
@@ -83,10 +74,11 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function animate(
+// ── Helper to animate via Web Animations API ───────────────────────
+function animateEl(
   el: HTMLElement,
   keyframes: Keyframe[],
-  options: number | KeyframeAnimationOptions
+  options: number | KeyframeAnimationOptions,
 ): Promise<void> {
   const anim = el.animate(keyframes, options);
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -95,47 +87,35 @@ function animate(
   return anim.finished.then(() => undefined);
 }
 
-// ── Spring‑based motion for push‑in and clash impact ──
-async function springAnimate(
-  el: HTMLElement,
-  toScale: number,
-  toOffsetX: number,
-  duration: number,
-  bounce: number,
-  decay: number
-): Promise<void> {
-  const fps = 60;
-  const steps = Math.round((duration / 1000) * fps);
-  const frames: Keyframe[] = [];
-
-  const currTransform = el.style.transform || '';
-  const scaleMatch = currTransform.match(/scale\(([^)]+)\)/);
-  const currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-  const translateMatch = currTransform.match(/translateX\(([-\d.]+)px\)/);
-  const currentOffset = translateMatch ? parseFloat(translateMatch[1]) : 0;
-
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const ease = 1 - Math.exp(-decay * t);
-    const offset = toOffsetX * ease;
-    const bounceAmplitude = Math.sin(t * bounce * Math.PI) * (1 - t);
-    const scale = toScale + (toScale - currentScale) * bounceAmplitude;
-
-    frames.push({
-      transform: `translate(-50%, -50%) translateX(${offset}px) scale(${scale.toFixed(3)})`,
-      offset: t,
-    });
+// ── Spawn dense DOM particle burst ─────────────────────────────────
+function spawnClashParticles(stage: HTMLElement, count: number) {
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute; top:50%; left:50%; width:0; height:0; pointer-events:none;';
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 160;
+    const size = 2 + Math.random() * 4;
+    p.style.cssText = `
+      position:absolute; width:${size}px; height:${size}px;
+      background: #ffd700; border-radius:50%;
+      box-shadow: 0 0 ${size * 2}px #ffaa00;
+      animation: clashParticleFly 0.6s ease-out forwards;
+    `;
+    p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    container.appendChild(p);
   }
-
-  return animate(el, frames, {
-    duration,
-    fill: 'forwards',
-    easing: 'linear',
-  });
+  stage.appendChild(container);
+  setTimeout(() => container.remove(), 800);
 }
 
+// ── Main Clash Animation Class ─────────────────────────────────────
 export class CardClashAnimation {
   private overlay: HTMLDivElement | null = null;
+  private playerEl: HTMLDivElement | null = null;
+  private enemyEl: HTMLDivElement | null = null;
+  private stage: HTMLDivElement | null = null;
   private skipHandler: (e: KeyboardEvent) => void;
 
   constructor() {
@@ -143,226 +123,133 @@ export class CardClashAnimation {
     injectStyles();
   }
 
-  public async play(playerCard: Card, enemyCard: Card): Promise<void> {
-    if (!clashEnabled) return;
-    try {
-      startLoop('card_battle_music_bed');
+  /**
+   * Plays the full clash sequence.
+   * Returns the overlay element (stage) so the caller can attach battle UI inside.
+   */
+  public async play(playerCard: Card, enemyCard: Card): Promise<HTMLDivElement | null> {
+    if (!clashEnabled) return null;
 
-      this.overlay = document.createElement('div');
-      this.overlay.style.cssText = 'position:fixed; inset:0; background:#000; z-index:3000; display:flex; align-items:center; justify-content:center; overflow:hidden;';
-      const stage = document.createElement('div');
-      stage.style.cssText = 'position:relative; width:100%; height:100%;';
-      this.overlay.appendChild(stage);
+    startLoop('card_battle_music_bed');
+    playPool('clash_card_reveal');
 
-      const playerEl = this.createClashCard(playerCard, 'player');
-      const enemyEl = this.createClashCard(enemyCard, 'enemy');
-      stage.appendChild(playerEl);
-      stage.appendChild(enemyEl);
+    this.overlay = document.createElement('div');
+    this.overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:3000; display:flex; align-items:center; justify-content:center; overflow:hidden;';
+    this.stage = document.createElement('div');
+    this.stage.style.cssText = 'position:relative; width:100%; height:100%;';
+    this.overlay.appendChild(this.stage);
 
-      const startX = -CONFIG.positions.startOffset;
-      playerEl.style.transform = `translate(-50%, -50%) translateX(${startX}px) rotateY(${CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})`;
-      enemyEl.style.transform = `translate(-50%, -50%) translateX(${-startX}px) rotateY(${-CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})`;
+    this.playerEl = this.createCard(playerCard, 'player');
+    this.enemyEl = this.createCard(enemyCard, 'enemy');
+    this.stage.appendChild(this.playerEl);
+    this.stage.appendChild(this.enemyEl);
 
-      document.body.appendChild(this.overlay);
-      document.addEventListener('keydown', this.skipHandler);
+    // Initial off‑screen positions
+    this.playerEl.style.transform = `translate(-50%, -50%) translateX(${-CONFIG.positions.startOffset}px) rotateY(${CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})`;
+    this.enemyEl.style.transform = `translate(-50%, -50%) translateX(${CONFIG.positions.startOffset}px) rotateY(${-CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})`;
 
-      playSfx('enemy_card_reveal');
-      playSfx('player_card_reveal');
+    document.body.appendChild(this.overlay);
+    document.addEventListener('keydown', this.skipHandler);
 
-      await this.runSequence(playerEl, enemyEl, stage);
-    } catch (error) {
-      console.error('Clash failed:', error);
-    } finally {
-      document.removeEventListener('keydown', this.skipHandler);
-      this.dispose();
-    }
+    // Sequence
+    await this.flipIn();
+    playPool('clash_landing', 0.8);
+    await this.pushToClash();
+
+    // Impact burst
+    playSfx('clash_impact', 1.0);
+    spawnClashParticles(this.stage, CONFIG.particleCount);
+    this.applyFlexDistortion();
+
+    await this.pushApart();
+    // Done – keep overlay alive with dim background and cards in final places
+    return this.overlay;
   }
 
-  private async runSequence(playerEl: HTMLElement, enemyEl: HTMLElement, stage: HTMLElement) {
-    const pos = CONFIG.positions;
-    const dur = CONFIG.duration;
-    const scl = CONFIG.scale;
-    const rot = CONFIG.rotation;
-    const easing = CONFIG.easing;
-
-    // 1. Flip in
-    await Promise.all([
-      animate(playerEl, [
-        { transform: `translate(-50%, -50%) translateX(${-pos.startOffset}px) rotateY(${rot.start}deg) scale(${scl.start})` },
-        { transform: `translate(-50%, -50%) translateX(${pos.idleOffset}px) rotateY(0deg) scale(${scl.idle})` }
-      ], { duration: dur.flipIn, easing: easing.flipIn, fill: 'forwards' }),
-      animate(enemyEl, [
-        { transform: `translate(-50%, -50%) translateX(${pos.startOffset}px) rotateY(${-rot.start}deg) scale(${scl.start})` },
-        { transform: `translate(-50%, -50%) translateX(${-pos.idleOffset}px) rotateY(0deg) scale(${scl.idle})` }
-      ], { duration: dur.flipIn, easing: easing.flipIn, fill: 'forwards' })
-    ]);
-
-    playSfx('cards_landing_in_place');
-    this.spawnLandingDust(stage);
-
-    // 2. Spring push toward clash
-    await Promise.all([
-      springAnimate(playerEl, scl.clash, pos.clashOffset, dur.pushIn, CONFIG.spring.bounce, CONFIG.spring.decay),
-      springAnimate(enemyEl, scl.clash, -pos.clashOffset, dur.pushIn, CONFIG.spring.bounce, CONFIG.spring.decay)
-    ]);
-
-    // Micro‑rebound
-    await Promise.all([
-      animate(playerEl, [
-        { transform: `translate(-50%, -50%) translateX(${pos.clashOffset}px) scale(${scl.clash})` },
-        { transform: `translate(-50%, -50%) translateX(${pos.clashOffset + 3}px) scale(${scl.clash - 0.03})` }
-      ], { duration: 60, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'forwards' }),
-      animate(enemyEl, [
-        { transform: `translate(-50%, -50%) translateX(${-pos.clashOffset}px) scale(${scl.clash})` },
-        { transform: `translate(-50%, -50%) translateX(${-pos.clashOffset - 3}px) scale(${scl.clash - 0.03})` }
-      ], { duration: 60, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'forwards' })
-    ]);
-
-    // Flex distortion
-    this.applyFlexDistortion(playerEl.querySelector('div'), enemyEl.querySelector('div'));
-
-    // Impact SFX + shake
-    this.playImpactSFX();
-    this.parallaxShake(stage, 300);
-
-    // Pooled runic blast (replaces heavy canvas)
-    this.spawnRunicBlast(stage);
-
-    // Push apart and fade
-    await Promise.all([
-      animate(playerEl, [
-        { transform: `translate(-50%, -50%) translateX(${pos.clashOffset}px) scale(${scl.clash})` },
-        { transform: `translate(-50%, -50%) translateX(${pos.endOffset}px) scale(${scl.end}) rotateY(${rot.end}deg)` }
-      ], { duration: dur.pushOut, easing: easing.pushOut, fill: 'forwards' }),
-      animate(enemyEl, [
-        { transform: `translate(-50%, -50%) translateX(${-pos.clashOffset}px) scale(${scl.clash})` },
-        { transform: `translate(-50%, -50%) translateX(${-pos.endOffset}px) scale(${scl.end}) rotateY(${-rot.end}deg)` }
-      ], { duration: dur.pushOut, easing: easing.pushOut, fill: 'forwards' })
-    ]);
-
-    await Promise.all([
-      animate(playerEl, { opacity: [1, 0] }, { duration: dur.fadeOut, easing: easing.fadeOut, fill: 'forwards' }),
-      animate(enemyEl, { opacity: [1, 0] }, { duration: dur.fadeOut, easing: easing.fadeOut, fill: 'forwards' })
-    ]);
-
-    if (this.overlay) {
-      this.overlay.style.transition = `opacity ${dur.fadeOut}ms`;
-      this.overlay.style.opacity = '0';
-      await new Promise(resolve => setTimeout(resolve, dur.fadeOut + 50));
-    }
+  /** Dispose completely (called on skip or after battle) */
+  public dispose(): void {
+    document.removeEventListener('keydown', this.skipHandler);
+    stopLoop('card_battle_music_bed');
+    this.overlay?.remove();
+    this.overlay = null;
+    this.stage = null;
   }
 
-  private createClashCard(card: Card, side: 'player' | 'enemy'): HTMLDivElement {
+  // ── Private sequence methods ────────────────────────────────────
+  private async flipIn(): Promise<void> {
+    const dur = CONFIG.duration.flipIn;
+    await Promise.all([
+      animateEl(this.playerEl!, [
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.startOffset}px) rotateY(${CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})` },
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.idleOffset}px) rotateY(0deg) scale(${CONFIG.scale.idle})` }
+      ], { duration: dur, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' }),
+      animateEl(this.enemyEl!, [
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.startOffset}px) rotateY(${-CONFIG.rotation.start}deg) scale(${CONFIG.scale.start})` },
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.idleOffset}px) rotateY(0deg) scale(${CONFIG.scale.idle})` }
+      ], { duration: dur, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' })
+    ]);
+  }
+
+  private async pushToClash(): Promise<void> {
+    const dur = CONFIG.duration.pushIn;
+    await Promise.all([
+      animateEl(this.playerEl!, [
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.idleOffset}px) scale(${CONFIG.scale.idle})` },
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.clashOffset}px) scale(${CONFIG.scale.clash})` }
+      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' }),
+      animateEl(this.enemyEl!, [
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.idleOffset}px) scale(${CONFIG.scale.idle})` },
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.clashOffset}px) scale(${CONFIG.scale.clash})` }
+      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' })
+    ]);
+  }
+
+  private async pushApart(): Promise<void> {
+    const dur = CONFIG.duration.pushOut;
+    await Promise.all([
+      animateEl(this.playerEl!, [
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.clashOffset}px) scale(${CONFIG.scale.clash})` },
+        { transform: `translate(-50%, -50%) translateX(${CONFIG.positions.endOffset}px) scale(${CONFIG.scale.end}) rotateY(${CONFIG.rotation.end}deg)` }
+      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' }),
+      animateEl(this.enemyEl!, [
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.clashOffset}px) scale(${CONFIG.scale.clash})` },
+        { transform: `translate(-50%, -50%) translateX(${-CONFIG.positions.endOffset}px) scale(${CONFIG.scale.end}) rotateY(${-CONFIG.rotation.end}deg)` }
+      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' })
+    ]);
+  }
+
+  private applyFlexDistortion(): void {
+    [this.playerEl, this.enemyEl].forEach(el => {
+      if (!el) return;
+      const inner = el.querySelector('div');
+      if (inner) {
+        inner.style.filter = `perspective(800px) skewX(${Math.random() * 4 - 2}deg) skewY(${Math.random() * 4 - 2}deg)`;
+        setTimeout(() => { if (inner) inner.style.filter = ''; }, 180);
+      }
+    });
+  }
+
+  private createCard(card: Card, side: 'player' | 'enemy'): HTMLDivElement {
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:absolute; top:50%; left:50%; width:280px; aspect-ratio:3/4; filter:drop-shadow(0 0 35px rgba(212,175,55,0.6)); will-change:transform,opacity; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:translate3d(0,0,0);';
+    wrapper.style.cssText = `
+      position:absolute; top:50%; left:50%; width:260px; aspect-ratio:3/4;
+      filter:drop-shadow(0 0 30px rgba(255,215,0,0.5));
+      will-change:transform,opacity;
+      backface-visibility:hidden; -webkit-backface-visibility:hidden;
+      transform-origin: center center;
+    `;
     const inner = document.createElement('div');
     inner.style.cssText = 'position:relative; width:100%; height:100%; border-radius:16px; overflow:hidden; background:#0a0508;';
     inner.innerHTML = `
       <img src="${card.image}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:16px;">
-      <img src="${card.frame}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:16px;object-fit:contain;">
-      <div style="position:absolute;bottom:-36px;left:50%;transform:translateX(-50%);color:#e0d8cc;font-size:1.4rem;text-shadow:0 0 15px rgba(0,0,0,0.8);white-space:nowrap;">${card.name}</div>
+      <img src="${card.frame}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;object-fit:contain;border-radius:16px;">
+      <div style="position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);color:#e0d8cc;font-size:1.3rem;text-shadow:0 0 15px rgba(0,0,0,0.8);white-space:nowrap;">${card.name}</div>
     `;
-    const aura = document.createElement('div');
-    aura.style.cssText = `
-      position:absolute; inset:-15px; border-radius:16px; pointer-events:none;
-      background: radial-gradient(circle, rgba(212,175,55,0.3) 0%, transparent 70%);
-      animation: auraPulse 3s ease-in-out infinite, auraDrift 6s linear infinite;
-    `;
-    inner.appendChild(aura);
     wrapper.appendChild(inner);
     return wrapper;
   }
 
-  private applyFlexDistortion(inner1: HTMLElement | null, inner2: HTMLElement | null) {
-    [inner1, inner2].forEach(inner => {
-      if (!inner) return;
-      inner.style.filter = `perspective(800px) skewX(${Math.random() * 3 - 1.5}deg) skewY(${Math.random() * 3 - 1.5}deg)`;
-      setTimeout(() => { if (inner) inner.style.transform = ''; }, 150);
-    });
-  }
-
-  private spawnLandingDust(stage: HTMLElement) {
-    const container = document.createElement('div');
-    container.style.cssText = 'position:absolute; top:50%; left:50%; width:0; height:0; pointer-events:none;';
-    for (let i = 0; i < 60; i++) {
-      const p = document.createElement('div');
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 30 + Math.random() * 80;
-      p.style.cssText = `
-        position:absolute; width:4px; height:4px; background:#c8b89a;
-        border-radius:50%; box-shadow:0 0 4px #c8b89a;
-        animation: landingDust 0.5s ease-out forwards;
-      `;
-      p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
-      p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
-      container.appendChild(p);
-    }
-    stage.appendChild(container);
-    setTimeout(() => container.remove(), 600);
-  }
-
-  private parallaxShake(stage: HTMLElement, duration: number) {
-    const layers = [
-      { scale: 0.98, intensity: 2 },
-      { scale: 1.0, intensity: 6 },
-      { scale: 1.02, intensity: 10 },
-    ];
-
-    layers.forEach(({ scale, intensity }) => {
-      const layer = document.createElement('div');
-      layer.style.cssText = `position:absolute; inset:0; pointer-events:none;`;
-      const keyframes: Keyframe[] = [];
-      for (let i = 0; i <= 20; i++) {
-        const offset = i / 20;
-        keyframes.push({
-          transform: `translate(${(Math.random() - 0.5) * intensity}px, ${(Math.random() - 0.5) * intensity}px) scale(${scale})`,
-          offset,
-        });
-      }
-      layer.animate(keyframes, { duration, fill: 'forwards', easing: 'ease-out' });
-      stage.appendChild(layer);
-      setTimeout(() => layer.remove(), duration + 50);
-    });
-  }
-
-  private spawnRunicBlast(stage: HTMLElement) {
-    // Use the pooled particle system – avoids canvas toDataURL entirely.
-    emitParticles(stage, {
-      type: 'runic',
-      count: CONFIG.particleCount,
-      duration: 1100,
-      velocity: 3,
-      spread: 1.5,
-    });
-
-    // Add a central flash via a CSS‑animated element (lightweight)
-    const flash = document.createElement('div');
-    flash.style.cssText = `
-      position:absolute; top:50%; left:50%; width:120px; height:120px;
-      background:radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,224,0.8) 30%, transparent 70%);
-      border-radius:50%; transform:translate(-50%, -50%) scale(0.6);
-      animation: flashBlast 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    `;
-    stage.appendChild(flash);
-    setTimeout(() => flash.remove(), 600);
-  }
-
-  private playImpactSFX() {
-    playSfx('clash_impact', 1.2);
-    if (navigator.vibrate) navigator.vibrate(40);
-    setTimeout(() => playSfx('hard_impact_critical_bone_crush', 1.0), 150);
-    setTimeout(() => playSfx('spell_impact', 0.7), 200);
-    playSfx('screen_shake');
-  }
-
-  private dispose() {
-    if (this.overlay) {
-      this.overlay.remove();
-      this.overlay = null;
-    }
-  }
-
-  private onSkip(e: KeyboardEvent) {
+  private onSkip(e: KeyboardEvent): void {
     if (e.key === 'Escape') this.dispose();
   }
 }

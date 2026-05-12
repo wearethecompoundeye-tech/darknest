@@ -1,5 +1,5 @@
-// js/audio/sfx.ts – Complete SFX registry with pool support.
-// Now includes pool helpers previously in sfx-pools.ts.
+// js/audio/sfx.ts
+// Complete SFX registry with all battle sounds, ambient loops, and spatial audio support.
 import { Howl } from 'howler';
 
 let sfxEnabled = true;
@@ -158,14 +158,6 @@ export function initAudio(): void {
     duel_fail: { src: `/sfx/duel_fail.mp3?v=${CACHE_VERSION}`, volume: 0.5 },
     card_play: { src: `/sfx/card_play.mp3?v=${CACHE_VERSION}`, volume: 0.4 },
     card_draw: { src: `/sfx/card_draw.mp3?v=${CACHE_VERSION}`, volume: 0.3 },
-
-    // ── Gaze Ward SFX ──
-    wardObliteration: { src: `/sfx/wardObliteration.mp3?v=${CACHE_VERSION}`, volume: 0.5 },
-    wardSubjugation:   { src: `/sfx/wardSubjugation.mp3?v=${CACHE_VERSION}`,   volume: 0.5 },
-    wardSublimation:   { src: `/sfx/wardSublimation.mp3?v=${CACHE_VERSION}`,   volume: 0.5 },
-    wardShatter:       { src: `/sfx/wardShatter.mp3?v=${CACHE_VERSION}`,       volume: 0.6 },
-    fracture:          { src: `/sfx/fracture.mp3?v=${CACHE_VERSION}`,          volume: 0.4 },
-    zelion_scream:     { src: `/sfx/zelion_scream.mp3?v=${CACHE_VERSION}`,     volume: 0.5 },
   };
 
   // Create all Howl instances
@@ -188,6 +180,10 @@ export function initAudio(): void {
   if (bgMusic) bgMusic.play();
 }
 
+/**
+ * Plays a one‑shot SFX. Volume is automatically calculated from base, sfx, and master.
+ * @param volumeMultiplier Temporary multiplier (e.g., 0.5 for quiet).
+ */
 export function playSfx(key: string, volumeMultiplier: number = 1.0): void {
   if (!sfxEnabled || !sounds[key]) return;
   const sound = sounds[key];
@@ -301,73 +297,4 @@ export function stopCaveDrips(): void {
 export function stopAllAudioProcesses(): void {
   stopAllLoops();
   stopCaveDrips();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Pool helpers (previously in sfx-pools.ts)
-// ═══════════════════════════════════════════════════════════════
-const POOLS: Record<string, string[]> = {
-  attack_hit: ['light_impact_hit', 'light_impact_hit_v2', 'percussive_hit'],
-  heavy_hit: ['high_impact_hit', 'hard_impact_critical_bone_crush', 'card_attack_heavy_slash'],
-  critical_hit: ['finishing_move_heavy_attack', 'hard_impact_critical_bone_crush'],
-  spell_impact: ['spell_impact', 'rife_spell', 'void_spell', 'light_earth_spell_damage', 'ice_spell'],
-  summon_fail: ['summon_fail', 'demon_fail_action_reaction'],
-  victory_fanfare: ['victory_10_seconds', 'game_winner_fanfare'],
-  clash_card_reveal: ['enemy_card_reveal', 'player_card_reveal'],
-  clash_landing: ['cards_landing_in_place'],
-  ui_click: ['uiClick', 'uiClickAlt'],
-  tome_open: ['tomeOpen'],
-  tome_close: ['tomeClose'],
-  satchel_open: ['satchelOpen'],
-  page_turn: ['pageTurn'],
-  craft_phial_success: ['phialSuccess'],
-  craft_powder_success: ['powderSuccess'],
-  craft_fail: ['craftFail'],
-  craft_restore: ['craftRestoreDraught'],
-  maze_send: ['Maze_Send'],
-  path_select: ['Path_Select'],
-  ward_trigger: ['Ward_Trigger'],
-  trap_trigger: ['Trap_Trigger'],
-  fragment_get: ['Fragment_Get'],
-  loot_reveal: ['Loot_Reveal'],
-  wisp_forage: ['wispForage'],
-  wisp_pet: ['petWisp'],
-  wisp_levelup: ['wispLevelUp'],
-  cave_drips: ['caveDrips'],
-  suspicion_rise: ['suspicionRise'],
-  demon_wrath: ['demonWrathAmbience'],
-  corruption_ambience: ['corruptionAmbience'],
-  battle_music_bed: ['card_battle_music_bed'],
-};
-
-export function playPool(poolKey: string, volumeMultiplier = 1.0): void {
-  const pool = POOLS[poolKey];
-  if (!pool) {
-    console.warn(`SFX pool "${poolKey}" not found.`);
-    return;
-  }
-  const sfxKey = pool[Math.floor(Math.random() * pool.length)];
-  playSfx(sfxKey, volumeMultiplier);
-}
-
-export function startPoolLoop(poolKey: string): void {
-  const pool = POOLS[poolKey];
-  if (!pool) {
-    console.warn(`SFX pool "${poolKey}" not found.`);
-    return;
-  }
-  const sfxKey = pool[Math.floor(Math.random() * pool.length)];
-  startLoop(sfxKey);
-}
-
-export function stopPoolLoop(poolKey: string): void {
-  const pool = POOLS[poolKey];
-  if (!pool) return;
-  for (const key of pool) {
-    stopLoop(key);
-  }
-}
-
-export function stopAllPools(): void {
-  stopAllLoops();
 }

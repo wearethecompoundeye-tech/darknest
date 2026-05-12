@@ -1,5 +1,5 @@
 // js/ui/ui-renderer.ts – Main UI rendering, demon‑free.
-// Stray elements removed; right panel now shows equipped entity.
+// Removed all demon panels; now shows equipped entity and dynamic bandolier.
 
 import { effect } from '@preact/signals-core';
 import {
@@ -24,7 +24,7 @@ import { playSfx, startLoop, stopLoop } from '../audio/sfx.js';
 import { addLog } from './log-manager.js';
 import { openGrimoire } from './grimoire.js';
 import { getCardById, type Card } from '../data/cards.js';
-import type { DemonTrait } from '../types/game.js';
+import { renderBandolierSlots } from './bandolier.js';
 
 // Cache elements
 const elements: Record<string, HTMLElement | null> = {};
@@ -220,7 +220,7 @@ function updateResourceSummary(): void {
   summary.innerHTML = html || "<span>No resources</span>";
 }
 
-// Card slot rendering – no external buttons, clean
+// Card slot rendering
 function renderCardSlots(): void {
   const container = getEl('cardSlotsContainer'); if (!container) return;
   const ent = equippedEntitySlots.value, spl = equippedSpellSlots.value, enh = equippedEnhancementSlots.value, lnd = equippedLandSlots.value;
@@ -321,28 +321,24 @@ export function setupUIEffects(): void {
   });
   effect(() => { const halo = getEl('ritualHalo'); if(halo) halo.style.display = (circleQuality.value>0 && runeSlots.value.every(r=>r)) ? 'block' : 'none'; });
 
-  // Right panel – now shows equipped entity instead of demon
+  // Right panel – shows equipped entity
   effect(() => {
     const entityCard = getActiveEntity();
-    const demonArea = getEl("demonArea"); // keep element id but repurpose
+    const demonArea = getEl("demonArea");
     if(demonArea) demonArea.innerHTML = entityCard ? `<strong>🜁 ${entityCard.name} (${entityCard.aspect})</strong>` : '🌀 No entity equipped';
-    // Hide demon action panel completely
+    // Hide any leftover demon panels
     const actionPanel = getEl("demonActionPanel"); if(actionPanel) actionPanel.style.display = 'none';
-    // Demon overlay – hide
     const demonOverlay = getEl("demonOverlay"); if(demonOverlay) demonOverlay.style.display = 'none';
   });
 
-  // Ash pile – always hidden
   effect(() => { const ash = getEl("ashPileArea"); if(ash) ash.style.display = 'none'; });
 
-  // Escape area
   effect(() => {
     const canEscape = circlePower.value >= 100 && hasSpecialIngredient.value && orbexFragments.value >= 6;
     const escapeArea = getEl("escapeArea"); if(escapeArea) escapeArea.style.display = canEscape ? 'block' : 'none';
     const consoleEscapeArea = getEl("consoleEscapeArea"); if(consoleEscapeArea) consoleEscapeArea.style.display = canEscape ? 'block' : 'none';
   });
 
-  // Timer display
   effect(() => {
     const mins = Math.floor(timerSeconds.value / 60), secs = timerSeconds.value % 60;
     const td = getEl("timerDisplay"); if(td) td.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
@@ -355,11 +351,15 @@ export function setupUIEffects(): void {
   effect(() => updateResourceSummary());
   effect(() => updateRuneSlots());
   effect(() => renderCardSlots());
+
+  // Bandolier
+  effect(() => renderBandolierSlots());
 }
 
 export function updateUI(): void {
   initTooltips();
   renderCardSlots();
+  renderBandolierSlots();
 }
 
 export function initOrbitAnimation(): void {

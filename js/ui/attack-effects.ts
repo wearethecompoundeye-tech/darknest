@@ -1,152 +1,214 @@
-// js/ui/attack-effects.ts – Centralised attack visual effects.
-// Uses DOM particles with object pooling via the particle-system module for high-performance bursts.
+// js/ui/attack-effects.ts – Dense, small‑particle attack visuals
+// Enhanced with void‑rift, shockwave, and aspect‑themed colors.
+// Works with BattleEffects for screen shake (optional).
 
-import { playSfx } from '../audio/sfx.js';
+import { playPool } from '../audio/sfx.js';
 
-type AttackFxType = 'slash' | 'radial' | 'rune' | 'critical';
+type AttackFxType = 'slash' | 'radial' | 'rune' | 'critical' | 'voidRift';
 
 export class AttackEffects {
   private static readonly RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+  private static aspectColors: Record<string, string> = {
+    Void: '#aa55ff',
+    Fire: '#ff6a2a',
+    Earth: '#c8b890',
+    Air: '#90c0e0',
+    Water: '#69a3e7',
+    Life: '#a0d07a',
+    Death: '#cc6666',
+    default: '#ffd700'
+  };
 
   /**
    * Play an attack visual effect at the given screen coordinates.
    * @param type – visual style of the effect.
    * @param x,y – screen coordinates.
    * @param damage – damage amount (influences intensity).
-   * @param aspect – optional aspect for thematic particle colors.
+   * @param aspect – optional aspect for thematic colors.
    */
-  static async play(type: AttackFxType, x: number, y: number, damage: number, aspect?: string) {
+  static play(type: AttackFxType, x: number, y: number, damage: number, aspect?: string) {
     const container = document.createElement('div');
     container.style.cssText = `position:fixed; left:${x}px; top:${y}px; width:0; height:0; pointer-events:none; z-index:5000;`;
 
     switch (type) {
       case 'slash':
-        this.slash(container, damage);
-        this.playAttackSounds(damage, true);
+        this.slash(container, damage, false);
+        playPool('attack_hit', 0.9);
         break;
       case 'radial':
         this.radialBurst(container, damage);
-        this.playAttackSounds(damage, false);
+        playPool('heavy_hit', 0.9);
         break;
       case 'rune':
-        this.runeExplosion(container, damage);
-        this.playSpellSounds(aspect);
+        this.runeExplosion(container, damage, aspect);
+        playPool('spell_impact', 0.85);
         break;
       case 'critical':
         this.slash(container, damage, true);
-        this.radialBurst(container, damage, true);
-        this.playCriticalSounds();
+        this.radialBurst(container, damage);
+        // shockwave ring
+        this.shockwaveRing(x, y, damage);
+        playPool('critical_hit', 1.0);
+        break;
+      case 'voidRift':
+        this.voidRift(x, y, damage);
+        playPool('spell_impact', 0.9);
         break;
     }
 
     document.body.appendChild(container);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    container.remove();
+    setTimeout(() => container.remove(), 800);
   }
 
-  private static playAttackSounds(damage: number, isSlash: boolean) {
-    playSfx('attack_swing');
-    const lightPool = ['light_impact_hit', 'light_impact_hit_v2', 'tiny_ice_hit'];
-    const heavyPool = ['high_impact_hit', 'card_attack_heavy_slash', 'hard_impact_critical_bone_crush'];
-    const pool = damage > 8 ? heavyPool : (isSlash ? ['high_impact_hit', 'card_attack_heavy_slash'] : lightPool);
-    playSfx(pool[Math.floor(Math.random() * pool.length)]);
-  }
-
-  private static playCriticalSounds() {
-    playSfx('finishing_move_heavy_attack');
-    playSfx('hard_impact_critical_bone_crush');
-    playSfx('screen_shake');
-    document.body.style.animation = 'stageShake 0.3s ease-out';
-    setTimeout(() => document.body.style.animation = '', 300);
-  }
-
-  private static playSpellSounds(aspect?: string) {
-    playSfx('spell_impact');
-    const aspectMap: Record<string, string> = {
-      Fire: 'rife_spell', Water: 'ice_spell', Air: 'rife_spell',
-      Earth: 'light_earth_spell_damage', Death: 'void_spell',
-      Life: 'light_earth_spell_damage', Void: 'void_spell'
-    };
-    const extra = aspect ? (aspectMap[aspect] || 'spell_impact') : 'spell_impact';
-    playSfx(extra);
-  }
-
+  // ── Slash: thin arc with tiny sparks ─────────────────────────────
   private static slash(container: HTMLDivElement, intensity: number, isCrit = false) {
-    const length = 60 + intensity * 3;
+    const length = 50 + intensity * 3;
     const angle = -45 + Math.random() * 90;
+    const color = isCrit ? '#ffd700' : '#ffffff';
     const line = document.createElement('div');
     line.style.cssText = `
       position:absolute; width:${length}px; height:2px;
-      background:linear-gradient(90deg, transparent, #ffd700, transparent);
+      background:linear-gradient(90deg, transparent, ${color}, transparent);
       transform: rotate(${angle}deg) translateX(-50%);
-      filter:blur(1px); box-shadow:0 0 8px #ffd700;
+      filter:blur(1px); box-shadow:0 0 8px ${color};
       animation:slashLine 0.4s ease-out forwards;
     `;
     container.appendChild(line);
-    for (let i = 0; i < 10; i++) {
+
+    const sparkCount = isCrit ? 30 : 18;
+    for (let i = 0; i < sparkCount; i++) {
       const p = document.createElement('div');
+      const dist = Math.random() * length;
+      const sparkAngle = angle + (Math.random() - 0.5) * 30;
+      const tx = Math.cos(sparkAngle * Math.PI / 180) * (30 + Math.random() * 25);
+      const ty = Math.sin(sparkAngle * Math.PI / 180) * (30 + Math.random() * 25);
       p.style.cssText = `
-        position:absolute; width:2px; height:2px; background:#fff; border-radius:50%;
-        transform: translate(${Math.random() * length}px, 0) scale(0);
-        animation:slashParticle 0.4s ease-out forwards;
+        position:absolute; width:2px; height:2px; background:${color}; border-radius:50%;
+        left:${dist}px; top:0;
+        transform: scale(0);
+        animation:slashSpark 0.4s ease-out forwards;
       `;
+      p.style.setProperty('--dx', `${tx}px`);
+      p.style.setProperty('--dy', `${ty}px`);
       container.appendChild(p);
     }
   }
 
-  private static radialBurst(container: HTMLDivElement, intensity: number, isCrit = false) {
-    const rings = isCrit ? 2 : 1;
-    for (let r = 0; r < rings; r++) {
-      const count = 20 + intensity * 1.5;
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2 + r * 0.5;
-        const dist = 40 + r * 20;
-        const p = document.createElement('div');
-        p.style.cssText = `
-          position:absolute; width:2px; height:2px; background:#fff; border-radius:50%;
-          box-shadow:0 0 4px #ffd700;
-          animation:radialParticle 0.5s ease-out forwards;
-        `;
-        p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
-        p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
-        container.appendChild(p);
-      }
-    }
-  }
-
-  private static runeExplosion(container: HTMLDivElement, intensity: number) {
-    const count = 30 + intensity * 2;
+  // ── Radial burst: small fast particles ───────────────────────────
+  private static radialBurst(container: HTMLDivElement, intensity: number) {
+    const count = 35 + intensity * 4;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 40 + Math.random() * 60;
-      const size = 4 + Math.random() * 4;
-      const char = this.RUNES[Math.floor(Math.random() * this.RUNES.length)];
+      const angle = (i / count) * Math.PI * 2;
+      const dist = 30 + Math.random() * 60;
+      const size = 1.5 + Math.random() * 2.5;
       const p = document.createElement('div');
       p.style.cssText = `
         position:absolute; width:${size}px; height:${size}px;
-        display:flex; align-items:center; justify-content:center;
-        font-size:${size * 0.7}px; color:#90ee90;
-        text-shadow:0 0 6px #90ee90;
-        animation:runeParticle 0.6s ease-out forwards;
+        background:#ffd700; border-radius:50%;
+        box-shadow:0 0 ${size}px #ffaa00;
+        animation:radialBurstParticle 0.45s ease-out forwards;
       `;
-      p.textContent = char;
       p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
       p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
       container.appendChild(p);
     }
   }
+
+  // ── Rune explosion: tiny dense rune characters ──────────────────
+  private static runeExplosion(container: HTMLDivElement, intensity: number, aspect?: string) {
+    const color = this.aspectColors[aspect || 'default'] || this.aspectColors.default;
+    const count = 40 + intensity * 3;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 30 + Math.random() * 80;
+      const size = 10 + Math.random() * 6;
+      const char = this.RUNES[Math.floor(Math.random() * this.RUNES.length)];
+      const p = document.createElement('div');
+      p.style.cssText = `
+        position:absolute; width:${size}px; height:${size}px;
+        display:flex; align-items:center; justify-content:center;
+        font-size:${size * 0.7}px; color:${color};
+        text-shadow:0 0 8px ${color};
+        animation:runeParticle 0.55s ease-out forwards;
+      `;
+      p.textContent = char;
+      p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+      p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+      p.style.setProperty('--rot', `${Math.random() * 360}deg`);
+      container.appendChild(p);
+    }
+  }
+
+  // ── Shockwave ring (expanding circle) ───────────────────────────
+  private static shockwaveRing(x: number, y: number, intensity: number) {
+    const ring = document.createElement('div');
+    const size = 20 + intensity;
+    ring.style.cssText = `
+      position:fixed; left:${x - size/2}px; top:${y - size/2}px;
+      width:${size}px; height:${size}px; border: 3px solid rgba(255,215,0,0.7);
+      border-radius:50%; pointer-events:none; z-index:5001;
+      animation:shockwaveExpand 0.5s ease-out forwards;
+    `;
+    document.body.appendChild(ring);
+    setTimeout(() => ring.remove(), 550);
+  }
+
+  // ── Void rift: dark vortex with screen distortion ───────────────
+  private static voidRift(x: number, y: number, damage: number) {
+    const vortex = document.createElement('div');
+    const radius = 60 + damage * 2;
+    vortex.style.cssText = `
+      position:fixed; left:${x - radius/2}px; top:${y - radius/2}px;
+      width:${radius}px; height:${radius}px;
+      background: radial-gradient(circle, rgba(170,85,255,0.6) 0%, rgba(0,0,0,0.8) 70%);
+      border-radius:50%; pointer-events:none; z-index:5001;
+      animation:voidRiftPulse 0.8s ease-out forwards;
+      mix-blend-mode: screen;
+    `;
+    document.body.appendChild(vortex);
+    // Temporary screen hue rotation
+    try {
+      const currentFilter = document.body.style.filter;
+      document.body.style.filter = `hue-rotate(${damage * 5}deg)`;
+      setTimeout(() => {
+        document.body.style.filter = currentFilter;
+        vortex.remove();
+      }, 800);
+    } catch {}
+  }
 }
 
-// Injecting keyframes only once
+// ── Global keyframes (injected once) ──────────────────────────────
 (function() {
-  if (document.getElementById('attack-effects-keyframes')) return;
+  if (document.getElementById('attack-effects-keyframes-v3')) return;
   const style = document.createElement('style');
-  style.id = 'attack-effects-keyframes';
+  style.id = 'attack-effects-keyframes-v3';
   style.textContent = `
-    @keyframes slashLine { 0%{opacity:0; transform:scaleX(0)} 50%{opacity:1} 100%{opacity:0; transform:scaleX(1)} }
-    @keyframes slashParticle { 0%{opacity:1; transform:translate(0,0) scale(1)} 100%{opacity:0; transform:translate(var(--dx), var(--dy)) scale(0)} }
-    @keyframes radialParticle { 0%{opacity:1; transform:translate(0,0)} 100%{opacity:0; transform:translate(var(--dx), var(--dy))} }
-    @keyframes runeParticle { 0%{opacity:1; transform:translate(0,0) rotate(0deg)} 100%{opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--rot))} }
+    @keyframes slashLine {
+      0% { opacity: 0; transform: rotate(var(--angle)) scaleX(0); }
+      50% { opacity: 1; }
+      100% { opacity: 0; transform: rotate(var(--angle)) scaleX(1); }
+    }
+    @keyframes slashSpark {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+    }
+    @keyframes radialBurstParticle {
+      0% { opacity: 1; transform: translate(0,0); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+    }
+    @keyframes runeParticle {
+      0% { opacity: 1; transform: translate(0,0) rotate(0deg); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); }
+    }
+    @keyframes shockwaveExpand {
+      0% { transform: scale(0.5); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes voidRiftPulse {
+      0% { transform: scale(0.3); opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
   `;
   document.head.appendChild(style);
 })();

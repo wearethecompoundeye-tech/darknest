@@ -1,19 +1,20 @@
-// js/ui/card-battle.ts – Unified battle system with Kalgoth AI, rich state, base HP, combos, rage.
-// All tactical systems are integrated. No dependencies on dead battle-actions.ts.
+// js/ui/card-battle.ts – Unified battle system with fluid clash integration,
+// dense particle feedback, pool‑based SFX, and tiered victory sequences.
+// Enhanced with AttackEffects for impactful visuals.
 
 import {
   will, maxWill, getEquippedCards, getActiveEntity, addMasteryXP,
-  circleMastery, orbexFragments, addCard, ingredients, ownedCards
+  circleMastery, orbexFragments, addCard, ingredients, ownedCards, kalgothsNoose,
+  autoSave, reduceQuota, advanceAction,
 } from '../core/state-signals.js';
 import { getCardById, type Card, type EntityStats, type SpellStats, type EntityAbility } from '../data/cards.js';
 import { el } from '../core/dom-helper.js';
-import { playSfx, startLoop, stopLoop, stopSfx } from '../audio/sfx.js';
 import { addLog } from './log-manager.js';
 import { triggerScreenPulse } from './ui-renderer.js';
 import {
   applyAbility, applyPassiveAbility, applyTriggeredAbility,
   processStatusEffects, calculateDamage,
-  type CombatContext
+  type CombatContext,
 } from '../systems/ability-engine.js';
 import {
   getEnhancedStats, checkForCombos, getAspectSynergyBonus
@@ -25,10 +26,13 @@ import { BattleEffects } from './battle-effects.js';
 import { BattleRage, grantBattleRewards } from '../systems/battle-depth.js';
 import { getKalgothAction } from '../ai/battle-ai.js';
 import type { BattleState, StatusEffect, CardBattleConfig } from './battle-config.js';
-import { AttackEffects } from './attack-effects.js';   // centralised attack visuals
+import { AttackEffects } from './attack-effects.js';
+import { playPool, startLoop, stopLoop } from '../audio/sfx.js';
 
+// Re‑export config type for consumers
 export type { CardBattleConfig } from './battle-config.js';
 
+// ── Private state ─────────────────────────────────────────────────
 let currentConfig: CardBattleConfig | null = null;
 let battleState: BattleState | null = null;
 let battleModal: HTMLDivElement | null = null;
@@ -38,11 +42,11 @@ const playerRage = new BattleRage();
 const enemyRage = new BattleRage();
 let isSummoningBattle = false;
 
-// ── CSS injection (unchanged) ──
+// ── CSS injection (unchanged) ────────────────────────────────────
 (function injectBattleStyles() {
-  if (document.getElementById('battle-enhancements')) return;
+  if (document.getElementById('battle-enhancements-v2')) return;
   const style = document.createElement('style');
-  style.id = 'battle-enhancements';
+  style.id = 'battle-enhancements-v2';
   style.textContent = `
     @keyframes intentPulse { 0%,100%{ opacity:0.8; } 50%{ opacity:1; } }
     #intentPreview { animation: intentPulse 1.5s ease-in-out infinite; }
@@ -50,15 +54,20 @@ let isSummoningBattle = false;
     @keyframes pulseBorder { 0%,100%{ filter: drop-shadow(0 0 8px rgba(60,120,200,0.4)); } 50%{ filter: drop-shadow(0 0 16px rgba(60,120,200,0.7)); } }
     .status-wind-up { box-shadow: 0 0 0 4px rgba(255,165,0,0.7); }
     .status-counter-ready { box-shadow: 0 0 0 4px rgba(255,69,0,0.8); }
+    .turn-indicator-pulse { animation: turnPulse 1s ease-in-out infinite; }
+    @keyframes turnPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
   `;
   document.head.appendChild(style);
 })();
 
-// ── Main Battle Modal ─────────────────────────────────────────────────
+// ── Main entry point ──────────────────────────────────────────────
 export async function openCardBattleModal(config: CardBattleConfig): Promise<void> {
   currentConfig = config;
   isSummoningBattle = !config.isMazeMinion;
-  const playerCard = config.playerCard || getActiveEntity();
+  const playerCard = config.playerCard ?? getActiveEntity();
   if (!playerCard) throw new Error('No player card');
   const enemyCard = config.enemyCard;
 
@@ -70,25 +79,24 @@ export async function openCardBattleModal(config: CardBattleConfig): Promise<voi
   const fragmentCount = orbexFragments.value;
   const difficultyMod = 1 + (masteryLevel * 0.12) + (fragmentCount * 0.18);
 
-  // Base HP buffer for new players
-  const pBaseHP = 8 + (playerStats?.hp || 20) + (adv > 0 ? Math.floor(adv / 2) : 0);
-  const pAtk = (playerStats?.atk || 3) + (adv > 0 ? Math.floor(adv / 3) : 0);
-  const eBaseHP = Math.floor((enemyStats?.hp || 15) * difficultyMod) + (adv < 0 ? Math.floor(-adv / 2) : 0);
-  const eAtk = Math.floor((enemyStats?.atk || 3) * difficultyMod) + (adv < 0 ? Math.floor(-adv / 3) : 0);
+  const pBaseHP = 8 + (playerStats?.hp ?? 20) + (adv > 0 ? Math.floor(adv / 2) : 0);
+  const pAtk = (playerStats?.atk ?? 3) + (adv > 0 ? Math.floor(adv / 3) : 0);
+  const eBaseHP = Math.floor((enemyStats?.hp ?? 15) * difficultyMod) + (adv < 0 ? Math.floor(-adv / 2) : 0);
+  const eAtk = Math.floor((enemyStats?.atk ?? 3) * difficultyMod) + (adv < 0 ? Math.floor(-adv / 3) : 0);
 
   battleState = {
     playerHP: pBaseHP, playerMaxHP: pBaseHP,
-    playerAttack: pAtk, playerDefense: playerStats?.def || 0,
-    playerResistance: playerStats?.res || 0, playerInitiative: playerStats?.init || 3,
+    playerAttack: pAtk, playerDefense: playerStats?.def ?? 0,
+    playerResistance: playerStats?.res ?? 0, playerInitiative: playerStats?.init ?? 3,
     enemyHP: eBaseHP, enemyMaxHP: eBaseHP,
-    enemyAttack: eAtk, enemyDefense: enemyStats?.def || 0,
-    enemyResistance: enemyStats?.res || 0, enemyInitiative: enemyStats?.init || 3,
+    enemyAttack: eAtk, enemyDefense: enemyStats?.def ?? 0,
+    enemyResistance: enemyStats?.res ?? 0, enemyInitiative: enemyStats?.init ?? 3,
     hand: getEquippedCards('spell').slice(0, 3),
-    turn: (playerStats?.init || 3) >= (enemyStats?.init || 3) ? 'player' : 'enemy',
+    turn: (playerStats?.init ?? 3) >= (enemyStats?.init ?? 3) ? 'player' : 'enemy',
     battleLog: [`${enemyCard.name} appears!`],
     advantage: adv, canFlee: config.isMazeMinion || false, fleeAttempts: 0,
-    playerAbilities: (playerCard.abilities || []) as EntityAbility[],
-    enemyAbilities: (enemyCard.abilities || []) as EntityAbility[],
+    playerAbilities: (playerCard.abilities ?? []) as EntityAbility[],
+    enemyAbilities: (enemyCard.abilities ?? []) as EntityAbility[],
     playerStatusEffects: [], enemyStatusEffects: [],
     turnCount: 0,
     enemyTelegraphed: false,
@@ -119,43 +127,46 @@ export async function openCardBattleModal(config: CardBattleConfig): Promise<voi
 
   gameBus.emit<BattleClashPayload>(GameEvents.BATTLE_CLASH_START, { playerCard, enemyCard });
 
+  // ── Run clash if enabled, then build battle UI inside the same stage ─
+  let stage: HTMLElement | null = null;
   if (isClashEnabled()) {
     const clash = new CardClashAnimation();
-    await clash.play(playerCard, enemyCard);
+    stage = await clash.play(playerCard, enemyCard);
   }
-
-  if (battleModal) battleModal.remove();
-  battleModal = createBattleModal(playerCard, enemyCard);
-  document.body.appendChild(battleModal);
-  battleModal.style.display = 'flex';
 
   battleFx = new BattleEffects();
   battleFx.init();
 
-  renderBattleUI(playerCard, enemyCard);
-  gameBus.emit<BattleEndPayload>(GameEvents.BATTLE_END, { result: 'victory', playerCard, enemyCard }); // dummy? not needed – remove later if not used
-  // Bind HP bars
-  const pBar = document.getElementById('playerHPBar');
-  const eBar = document.getElementById('enemyHPBar');
-  if (pBar && eBar) battleFx.bindHpBars(pBar, eBar);
+  if (stage) {
+    // Mount the battle UI inside the clash overlay
+    battleModal = createBattleModal(playerCard, enemyCard);
+    stage.appendChild(battleModal);
+    battleModal.style.display = 'flex';
+  } else {
+    // Fallback: create fullscreen modal
+    if (battleModal) battleModal.remove();
+    battleModal = createBattleModal(playerCard, enemyCard);
+    document.body.appendChild(battleModal);
+    battleModal.style.display = 'flex';
+  }
 
+  renderBattleUI(playerCard, enemyCard);
   battleFx.showTurnBanner(battleState.turn === 'player' ? 'YOUR TURN' : 'ENEMY TURN');
-  playSfx('duel_start');
+  startLoop('duel_start');
 
   if (battleState.turn === 'enemy') setTimeout(() => enemyTurn(), 600);
 }
 
+// ── Modal creation ─────────────────────────────────────────────────
 function createBattleModal(playerCard: Card, enemyCard: Card): HTMLDivElement {
   const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.id = 'cardBattleModal';
-  Object.assign(modal.style, {
-    position: 'fixed', inset: '0', backgroundColor: 'rgba(0,0,0,0.95)',
-    backdropFilter: 'blur(12px)', zIndex: '2500', display: 'flex',
-    justifyContent: 'center', alignItems: 'center'
-  });
+  modal.className = 'battle-ui-container';
+  modal.style.cssText = `
+    position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
+    pointer-events:auto; z-index:10;
+  `;
   modal.innerHTML = `
-    <div class="battle-content" style="max-width:1200px; width:95%; height:85vh; background:#0a0508; border:2px solid #6a4a3a; border-radius:24px; padding:20px; box-shadow:0 0 0 1px #8a7a5a inset, 0 20px 40px #000; color:#e0d8cc; display:flex; flex-direction:column; gap:16px;">
+    <div class="battle-content" style="max-width:1200px; width:95%; height:85vh; background:rgba(10,5,8,0.95); border:2px solid #6a4a3a; border-radius:24px; padding:20px; box-shadow:0 0 0 1px #8a7a5a inset, 0 20px 40px #000; color:#e0d8cc; display:flex; flex-direction:column; gap:16px;">
       <h3 style="margin:0; color:#b8a890; text-align:center; font-size:1.6rem;">⚔️ CARD BATTLE ⚔️</h3>
       <div id="intentPreview" style="text-align:center; font-size:0.85rem; color:#ffd700; height:24px;"></div>
       <div style="display:flex; gap:30px; flex:1; align-items:center; justify-content:center;">
@@ -183,10 +194,14 @@ function createBattleModal(playerCard: Card, enemyCard: Card): HTMLDivElement {
       </div>
       <div id="spellHand" style="display:flex; gap:10px; justify-content:center; margin:8px 0;"></div>
       <div id="battleLog" style="padding:8px; background:rgba(0,0,0,0.5); border:1px solid #5a4a3a; border-radius:12px; height:70px; overflow-y:auto; font-size:0.85rem;"></div>
-      <div style="text-align:center; color:#a09080; font-size:0.85rem;">Will: ${will.value}/${maxWill.value} | Turn: <span id="turnIndicator">Player</span></div>
+      <div style="text-align:center; color:#a09080; font-size:0.85rem;">Will: ${will.value}/${maxWill.value} | Turn: <span id="turnIndicator" class="turn-indicator-pulse">Player</span></div>
     </div>
   `;
-  modal.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => playSfx('uiClick')));
+
+  // Bind buttons with pool sound
+  modal.querySelectorAll('button').forEach(btn =>
+    btn.addEventListener('click', () => playPool('ui_click', 0.3))
+  );
   modal.querySelector('#attackBtn')!.addEventListener('click', () => handleAttack(playerCard, enemyCard));
   modal.querySelector('#defendBtn')!.addEventListener('click', handleDefend);
   modal.querySelector('#abilityBtn')!.addEventListener('click', () => handleAbility(playerCard, enemyCard));
@@ -194,7 +209,7 @@ function createBattleModal(playerCard: Card, enemyCard: Card): HTMLDivElement {
   return modal;
 }
 
-// ── UI update functions ──
+// ── UI update functions ───────────────────────────────────────────
 function updateStatDisplays(): void {
   if (!battleState) return;
   const pctP = (battleState.playerHP / battleState.playerMaxHP) * 100;
@@ -203,8 +218,6 @@ function updateStatDisplays(): void {
   document.getElementById('enemyHPBar')!.style.width = `${pctE}%`;
   document.getElementById('playerHPText')!.textContent = `HP: ${battleState.playerHP}/${battleState.playerMaxHP}`;
   document.getElementById('enemyHPText')!.textContent = `HP: ${battleState.enemyHP}/${battleState.enemyMaxHP}`;
-  battleFx?.setPlayerHp(pctP);
-  battleFx?.setEnemyHp(pctE);
 }
 
 function updateRageBars(): void {
@@ -222,11 +235,10 @@ function updateMomentumBars(): void {
 function updateIntentPreview(): void {
   const div = document.getElementById('intentPreview');
   if (!div || !battleState) return;
-  const playerIntent = battleState.playerIntent ?? 'none';
   let enemyText = 'waiting';
   if (battleState.telegraphEffect === 'wind-up') enemyText = '⚡ Heavy Strike incoming!';
   else if (battleState.telegraphEffect === 'counter-ready') enemyText = '🛡️ Enemy is bracing';
-  div.textContent = `You plan: ${playerIntent} | ${enemyText}`;
+  div.textContent = `You plan: ${battleState.playerIntent ?? 'none'} | ${enemyText}`;
 }
 
 function renderBattleUI(playerCard: Card, enemyCard: Card): void {
@@ -251,27 +263,36 @@ function renderBattleUI(playerCard: Card, enemyCard: Card): void {
     if (battleState.telegraphEffect === 'counter-ready') enemyCardEl.classList.add('status-counter-ready');
   }
 
-  // spell hand
+  // Spell hand
   const handEl = document.getElementById('spellHand');
   if (handEl) {
     handEl.innerHTML = '';
     battleState.hand.forEach((spell, idx) => {
       const spellEl = document.createElement('div');
       spellEl.style.cssText = 'width:60px; aspect-ratio:3/4; border-radius:8px; overflow:hidden; cursor:pointer; position:relative; transition:transform 0.15s;';
-      spellEl.innerHTML = `<img src="${spell.image}" style="width:100%; height:100%; object-fit:cover;"><img src="${spell.frame}" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; object-fit:contain;"><div style="position:absolute; bottom:2px; left:2px; background:rgba(0,0,0,0.7); padding:1px 4px; border-radius:6px; font-size:0.6rem; color:#e0d8cc;">${(spell.stats as SpellStats).cost}W</div>`;
+      const spellStats = spell.stats as SpellStats;
+      spellEl.innerHTML = `<img src="${spell.image}" style="width:100%; height:100%; object-fit:cover;"><img src="${spell.frame}" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; object-fit:contain;"><div style="position:absolute; bottom:2px; left:2px; background:rgba(0,0,0,0.7); padding:1px 4px; border-radius:6px; font-size:0.6rem; color:#e0d8cc;">${spellStats.cost}W</div>`;
+      spellEl.title = `${spell.name}\n${spellStats.effect || ''}\nCost: ${spellStats.cost} Will`;
       spellEl.addEventListener('click', () => handleSpellCast(idx));
-      spellEl.addEventListener('mouseenter', () => playSfx('card_hover_drone'));
-      spellEl.addEventListener('mouseleave', () => stopSfx('card_hover_drone'));
+      spellEl.addEventListener('mouseenter', () => playPool('card_hover_drone'));
+      spellEl.addEventListener('mouseleave', () => stopLoop('card_hover_drone'));
       handEl.appendChild(spellEl);
     });
   }
 
   const logEl = document.getElementById('battleLog');
-  if (logEl) { logEl.innerHTML = battleState.battleLog.map(l => `<div>> ${l}</div>`).join(''); logEl.scrollTop = logEl.scrollHeight; }
-  document.getElementById('turnIndicator')!.textContent = battleState.turn === 'player' ? 'Player' : 'Enemy';
+  if (logEl) {
+    logEl.innerHTML = battleState.battleLog.map(l => `<div>> ${l}</div>`).join('');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  const turnIndicator = document.getElementById('turnIndicator');
+  if (turnIndicator) {
+    turnIndicator.textContent = battleState.turn === 'player' ? 'Player' : 'Enemy';
+    turnIndicator.classList.toggle('turn-indicator-pulse', battleState.turn === 'player');
+  }
 }
 
-// ── Turn transitions ──
+// ── Turn transitions ──────────────────────────────────────────────
 function endPlayerTurn(): void {
   if (!battleState) return;
   if (battleState.playerMomentum > 0) battleState.playerMomentum = Math.max(0, battleState.playerMomentum - 1);
@@ -279,7 +300,7 @@ function endPlayerTurn(): void {
   battleState.playerIntent = null;
   battleState.turn = 'enemy';
   battleFx?.showTurnBanner('Enemy Turn');
-  renderBattleUI(currentConfig!.playerCard || getActiveEntity()!, currentConfig!.enemyCard);
+  renderBattleUI(currentConfig!.playerCard ?? getActiveEntity()!, currentConfig!.enemyCard);
   setTimeout(enemyTurn, 800);
 }
 
@@ -289,13 +310,12 @@ function endEnemyTurn(): void {
   battleState.enemyIsDefending = false;
   battleState.turn = 'player';
   battleFx?.showTurnBanner('Your Turn');
-  renderBattleUI(currentConfig!.playerCard || getActiveEntity()!, currentConfig!.enemyCard);
+  renderBattleUI(currentConfig!.playerCard ?? getActiveEntity()!, currentConfig!.enemyCard);
 }
 
-// ── Player Actions ───────────────────────────────────────────────────
+// ── Player Actions ─────────────────────────────────────────────────
 function handleAttack(playerCard: Card, enemyCard: Card): void {
   if (!battleState || battleState.turn !== 'player') return;
-
   battleState.playerIntent = 'attack';
   let baseDamage = battleState.playerAttack + Math.floor(Math.random() * 4) - 2;
   const spent = battleState.playerMomentum;
@@ -308,25 +328,24 @@ function handleAttack(playerCard: Card, enemyCard: Card): void {
   const isCrit = playerRage.consume();
   if (isCrit) baseDamage *= 2;
 
-  const damage = calculateDamage(combatContext!, baseDamage, true);
-  battleState.enemyHP = Math.max(0, battleState.enemyHP - damage);
+  const finalDamage = calculateDamage(combatContext!, baseDamage, true);
+  battleState.enemyHP = Math.max(0, battleState.enemyHP - finalDamage);
   combatContext!.enemyHP = battleState.enemyHP;
-  battleState.battleLog.push(`You attack for ${damage} damage!${isCrit ? ' CRITICAL!' : ''}`);
+  battleState.battleLog.push(`You attack for ${finalDamage} damage!${isCrit ? ' CRITICAL!' : ''}`);
   applyTriggeredAbility(combatContext!, true, 'onAttack', battleState.playerAbilities);
 
   battleState.playerActionHistory.push('attack');
   if (battleState.playerActionHistory.length > 3) battleState.playerActionHistory.shift();
   checkActionCombo('player');
 
+  // Visual feedback
   const enemyEl = document.getElementById('enemyCardDisplay')?.querySelector('.battle-card') as HTMLElement;
   if (enemyEl) {
     const rect = enemyEl.getBoundingClientRect();
     const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-    const fxType = isCrit ? 'critical' : (damage > 8 ? 'slash' : 'radial');
-    AttackEffects.play(fxType, cx, cy, damage, enemyCard.aspect);
-    battleFx?.showDamage(cx, cy, damage, isCrit ? 'critical' : 'normal', enemyCard.aspect);
+    battleFx?.showDamage(cx, cy, finalDamage, isCrit ? 'critical' : 'normal', enemyCard.aspect);
     battleFx?.shakeCard(enemyEl);
-    playSfx('card_hit_damage');
+    AttackEffects.play(isCrit ? 'critical' : 'slash', cx, cy, finalDamage, enemyCard.aspect);
   }
 
   if (battleState.enemyHP <= 0) checkBattleEnd(playerCard, enemyCard);
@@ -340,7 +359,7 @@ function handleDefend(): void {
   combatContext!.playerEffects.push({
     name: 'Defending',
     duration: 2,
-    onDamageTaken: (_ctx, dmg, isPlayer) => isPlayer ? Math.ceil(dmg / 2) : dmg
+    onDamageTaken: (_ctx, dmg, isPlayer) => isPlayer ? Math.ceil(dmg / 2) : dmg,
   });
   if (battleState.playerMomentum < 3) {
     battleState.playerMomentum++;
@@ -356,7 +375,6 @@ function handleAbility(playerCard: Card, enemyCard: Card): void {
   const ability = battleState.playerAbilities.find(a => a.type === 'combat' && a.trigger !== 'passive');
   if (!ability) return;
   battleState.playerIntent = 'skill';
-  playSfx('card_play');
   applyAbility(combatContext!, true, ability.name, ability);
   battleState.playerHP = combatContext!.playerHP;
   battleState.enemyHP = combatContext!.enemyHP;
@@ -365,25 +383,26 @@ function handleAbility(playerCard: Card, enemyCard: Card): void {
   const enemyEl = document.getElementById('enemyCardDisplay')?.querySelector('.battle-card') as HTMLElement;
   if (enemyEl) {
     const rect = enemyEl.getBoundingClientRect();
-    AttackEffects.play('rune', rect.left + rect.width / 2, rect.top + rect.height / 2, ability.value || 10, enemyCard.aspect);
-    battleFx?.showDamage(rect.left + rect.width / 2, rect.top + rect.height / 2, ability.value || 10, 'magic', enemyCard.aspect);
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    battleFx?.showDamage(cx, cy, ability.value ?? 8, 'normal', enemyCard.aspect);
     battleFx?.shakeCard(enemyEl);
-    playSfx('card_hit_damage');
+    AttackEffects.play('rune', cx, cy, ability.value ?? 8, enemyCard.aspect);
   }
 
   if (battleState.enemyHP <= 0) checkBattleEnd(playerCard, enemyCard);
   else endPlayerTurn();
 }
 
-// ── Spell Cast ──
 function handleSpellCast(index: number): void {
   if (!battleState || battleState.turn !== 'player' || !combatContext || !currentConfig) return;
   const spell = battleState.hand[index];
   if (!spell) return;
   const spellStats = spell.stats as SpellStats;
-  if (will.value < spellStats.cost) { addLog('Not enough Will!', true); return; }
+  if (will.value < spellStats.cost) {
+    addLog('Not enough Will!', true);
+    return;
+  }
   will.value -= spellStats.cost;
-  playSfx('card_play');
   if (spellStats.damage) {
     battleState.enemyHP = Math.max(0, battleState.enemyHP - spellStats.damage);
     combatContext.enemyHP = battleState.enemyHP;
@@ -397,31 +416,32 @@ function handleSpellCast(index: number): void {
   const enemyEl = document.getElementById('enemyCardDisplay')?.querySelector('.battle-card') as HTMLElement;
   if (enemyEl && spellStats.damage) {
     const rect = enemyEl.getBoundingClientRect();
-    AttackEffects.play('rune', rect.left + rect.width / 2, rect.top + rect.height / 2, spellStats.damage, currentConfig.enemyCard.aspect);
-    battleFx?.showDamage(rect.left + rect.width / 2, rect.top + rect.height / 2, spellStats.damage, 'magic', currentConfig.enemyCard.aspect);
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    battleFx?.showDamage(cx, cy, spellStats.damage, 'normal', currentConfig.enemyCard.aspect);
     battleFx?.shakeCard(enemyEl);
-    playSfx('card_hit_damage');
+    AttackEffects.play('rune', cx, cy, spellStats.damage, currentConfig.enemyCard.aspect);
   }
   if (battleState.enemyHP <= 0) checkBattleEnd(currentConfig.playerCard!, currentConfig.enemyCard);
   else endPlayerTurn();
 }
 
-// ── Flee ──
 function handleFlee(): void {
   if (!battleState || !currentConfig) return;
-  playSfx('card_play');
   battleState.fleeAttempts++;
   if (Math.random() < 0.4 + battleState.fleeAttempts * 0.2) {
     battleState.battleLog.push('You flee!');
-    renderBattleUI(currentConfig.playerCard || getActiveEntity()!, currentConfig.enemyCard);
-    setTimeout(() => { if (currentConfig.onFlee) currentConfig.onFlee(); closeBattleModal(); }, 1000);
+    renderBattleUI(currentConfig.playerCard! ?? getActiveEntity()!, currentConfig.enemyCard);
+    setTimeout(() => {
+      currentConfig?.onFlee?.();
+      closeBattleModal();
+    }, 1000);
   } else {
     battleState.battleLog.push('Failed to flee!');
     endPlayerTurn();
   }
 }
 
-// ── Enemy Turn with Kalgoth AI ───────────────────────────────────────
+// ── Enemy Turn with AI ────────────────────────────────────────────
 async function enemyTurn(): Promise<void> {
   if (!battleState || !combatContext || !currentConfig) return;
   battleState.turnCount++;
@@ -432,13 +452,8 @@ async function enemyTurn(): Promise<void> {
 
   const enemyCard = currentConfig.enemyCard;
   const playerCard = currentConfig.playerCard!;
-
-  // Get AI decision
   const { action, banter } = await getKalgothAction(battleState, playerCard, enemyCard);
-
-  if (banter) {
-    battleState.battleLog.push(`KALGOTH: ${banter}`);
-  }
+  if (banter) battleState.battleLog.push(`KALGOTH: ${banter}`);
 
   if (action.startsWith('ability:')) {
     const abilityName = action.substring(8).trim();
@@ -449,7 +464,7 @@ async function enemyTurn(): Promise<void> {
       battleState.enemyHP = combatContext.enemyHP;
       battleState.battleLog = combatContext.battleLog;
       battleState.enemyIntent = 'skill';
-      battleState.telegraphEffect = 'rune-glow';
+      battleState.telegraphEffect = 'wind-up';
     } else {
       performEnemyAttack();
     }
@@ -458,7 +473,7 @@ async function enemyTurn(): Promise<void> {
     combatContext.enemyEffects.push({
       name: 'Defending',
       duration: 2,
-      onDamageTaken: (_ctx, dmg, isPlayer) => !isPlayer ? Math.ceil(dmg / 2) : dmg
+      onDamageTaken: (_ctx, dmg, isPlayer) => !isPlayer ? Math.ceil(dmg / 2) : dmg,
     });
     if (battleState.enemyMomentum < 3) battleState.enemyMomentum++;
     battleState.battleLog.push(`${enemyCard.name} braces itself.`);
@@ -490,25 +505,23 @@ function performEnemyAttack(): void {
   enemyRage.generate(spent >= 3 ? 2 : 1);
   const isCrit = enemyRage.consume();
   if (isCrit) baseDamage *= 2;
-  const damage = calculateDamage(combatContext, baseDamage, false);
-  battleState.playerHP = Math.max(0, battleState.playerHP - damage);
+  const finalDamage = calculateDamage(combatContext, baseDamage, false);
+  battleState.playerHP = Math.max(0, battleState.playerHP - finalDamage);
   combatContext.playerHP = battleState.playerHP;
-  battleState.battleLog.push(`${currentConfig.enemyCard.name} attacks for ${damage} damage!${isCrit ? ' CRITICAL!' : ''}`);
+  battleState.battleLog.push(`${currentConfig.enemyCard.name} attacks for ${finalDamage} damage!${isCrit ? ' CRITICAL!' : ''}`);
   applyTriggeredAbility(combatContext, false, 'onDamage', battleState.enemyAbilities);
 
   const playerEl = document.getElementById('playerCardDisplay')?.querySelector('.battle-card') as HTMLElement;
   if (playerEl) {
     const rect = playerEl.getBoundingClientRect();
     const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-    const fxType = isCrit ? 'critical' : (damage > 8 ? 'slash' : 'radial');
-    AttackEffects.play(fxType, cx, cy, damage, currentConfig.enemyCard.aspect);
-    battleFx?.showDamage(cx, cy, damage, isCrit ? 'critical' : 'normal', currentConfig.enemyCard.aspect);
+    battleFx?.showDamage(cx, cy, finalDamage, isCrit ? 'critical' : 'normal', currentConfig.enemyCard.aspect);
     battleFx?.shakeCard(playerEl);
-    playSfx('card_hit_damage');
+    AttackEffects.play(isCrit ? 'critical' : 'slash', cx, cy, finalDamage, currentConfig.enemyCard.aspect);
   }
 }
 
-// ── Combo detection ──
+// ── Combo detection ───────────────────────────────────────────────
 function checkActionCombo(side: 'player' | 'enemy'): void {
   if (!battleState) return;
   const history = side === 'player' ? battleState.playerActionHistory : battleState.enemyActionHistory;
@@ -523,42 +536,57 @@ function checkActionCombo(side: 'player' | 'enemy'): void {
   }
 }
 
-// ── Victory / Defeat ─────────────────────────────────────────────────
+// ── Victory/Defeat with tiered outcomes ────────────────────────────
+function getVictoryTier(): 'scuffle' | 'solid' | 'masterful' {
+  const hpPct = battleState!.playerHP / battleState!.playerMaxHP;
+  const turns = battleState!.turnCount;
+  const momentumUsed = battleState!.playerMomentum >= 2;
+  if (hpPct <= 0.25 && turns <= 3 && momentumUsed) return 'masterful';
+  if (hpPct <= 0.5 && turns <= 5) return 'solid';
+  return 'scuffle';
+}
+
 async function checkBattleEnd(playerCard: Card, enemyCard: Card): Promise<void> {
   if (!battleState || !currentConfig) return;
   if (battleState.enemyHP <= 0) {
+    const tier = getVictoryTier();
     battleState.battleLog.push(`Victory! ${enemyCard.name} is defeated.`);
     renderBattleUI(playerCard, enemyCard);
     stopLoop('card_battle_music_bed');
-    playSfx('duel_success');
-    triggerScreenPulse('#d4af37');
-    const tier = enemyCard.rarity === 'legendary' ? 3 : (enemyCard.rarity === 'epic' ? 2 : 1);
-    grantBattleRewards(tier, enemyCard.aspect, isSummoningBattle);
-    addMasteryXP(15 + battleState.turnCount * 2);
+    playPool('victory_fanfare');
+    triggerScreenPulse(tier === 'masterful' ? '#ffaa00' : '#d4af37');
+    const rarityTier = enemyCard.rarity === 'legendary' ? 3 : (enemyCard.rarity === 'epic' ? 2 : 1);
+    grantBattleRewards(rarityTier, enemyCard.aspect, isSummoningBattle);
+    addMasteryXP(15 + battleState.turnCount * 2 + (tier === 'masterful' ? 20 : 0));
+    if (tier === 'masterful') {
+      will.value = Math.min(will.value + 5, maxWill.value);
+      addLog('Masterful victory! You feel empowered.', false);
+    }
     gameBus.emit<BattleEndPayload>(GameEvents.BATTLE_END, { result: 'victory', playerCard, enemyCard });
-    await battleFx?.showVictory();
-    showVictoryOptions(enemyCard);
+    await battleFx?.showVictory(tier);
+    showVictoryOptions(enemyCard, tier);
   } else if (battleState.playerHP <= 0) {
     battleState.battleLog.push(`Defeat...`);
     renderBattleUI(playerCard, enemyCard);
     stopLoop('card_battle_music_bed');
-    playSfx('duel_fail');
+    playPool('defeat');
     triggerScreenPulse('#8a0000');
     gameBus.emit<BattleEndPayload>(GameEvents.BATTLE_END, { result: 'defeat', playerCard, enemyCard });
     await battleFx?.showDefeat();
-    if (currentConfig.onDefeat) currentConfig.onDefeat();
+    currentConfig.onDefeat?.();
     closeBattleModal();
   }
 }
 
-function showVictoryOptions(enemyCard: Card): void {
+function showVictoryOptions(enemyCard: Card, tier: string): void {
   if (!battleModal || !currentConfig) return;
   const content = battleModal.querySelector('.battle-content');
   if (!content) return;
+  const cardName = tier === 'masterful' ? `${enemyCard.name} (Empowered)` : enemyCard.name;
   content.innerHTML = `
-    <h3>✨ VICTORY ✨</h3>
+    <h3 style="color:#ffd700;">✨ ${tier === 'masterful' ? 'MASTERFUL' : ''} VICTORY ✨</h3>
     <img src="${enemyCard.image}" style="width:180px; aspect-ratio:3/4; object-fit:cover; border-radius:12px; margin:10px auto;">
-    <p>${enemyCard.name} lies before you.</p>
+    <p>${cardName} lies before you.</p>
     <div style="display:flex; gap:15px; justify-content:center;">
       <button id="victoryBarter" class="craft-btn">🤝 Barter</button>
       <button id="victoryDestroy" class="craft-btn">💀 Destroy</button>
@@ -566,18 +594,18 @@ function showVictoryOptions(enemyCard: Card): void {
     </div>
   `;
   content.querySelector('#victoryBarter')!.addEventListener('click', () => {
-    playSfx('uiClick'); playSfx('bargainSecret');
-    if (currentConfig!.onVictory) currentConfig!.onVictory('barter');
+    playPool('ui_click');
+    currentConfig!.onVictory?.('barter');
     closeBattleModal();
   });
   content.querySelector('#victoryDestroy')!.addEventListener('click', () => {
-    playSfx('uiClick'); playSfx('destroyDemon');
-    if (currentConfig!.onVictory) currentConfig!.onVictory('destroy');
+    playPool('ui_click');
+    currentConfig!.onVictory?.('destroy');
     closeBattleModal();
   });
   content.querySelector('#victoryEnsnare')!.addEventListener('click', () => {
-    playSfx('uiClick'); playSfx('captureDemon');
-    if (currentConfig!.onVictory) currentConfig!.onVictory('ensnare');
+    playPool('ui_click');
+    currentConfig!.onVictory?.('ensnare');
     closeBattleModal();
   });
 }
@@ -586,6 +614,12 @@ function closeBattleModal(): void {
   stopLoop('card_battle_music_bed');
   battleFx?.dispose();
   battleFx = null;
-  if (battleModal) { battleModal.remove(); battleModal = null; }
+  if (battleModal) {
+    battleModal.remove();
+    battleModal = null;
+  }
+  // Remove clash overlay if exists
+  const clashOverlay = document.querySelector('.battle-commencement-active') as HTMLElement;
+  if (clashOverlay) clashOverlay.remove();
   currentConfig = null; battleState = null; combatContext = null;
 }

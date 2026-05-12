@@ -1,5 +1,4 @@
 // js/ui/gaze-ui.ts – Enhanced Gaze overlay with stress visuals, ward patterns, and combat actions
-
 import { el } from '../core/dom-helper.js';
 import {
   will, maxWill, health, dailyConsumableSlots, crafted, ingredients,
@@ -9,6 +8,8 @@ import {
   gazeWardCount, gazeWardImageIds, gazeWardPattern,
   useConsumable, attemptWardCast, forceStartGazeEvent, confrontHollow,
 } from '../systems/gaze-event.js';
+import { addLog } from './log-manager.js';
+import { playSfx } from '../audio/sfx.js';
 
 let gazeOverlay: HTMLDivElement | null = null;
 let wardElements: HTMLDivElement[] = [];
@@ -267,7 +268,6 @@ function updateWardVisuals(): void {
         animation: wardSpin 3s linear infinite;
       `;
       const img = document.createElement('img');
-      // Use a generic ward type image (we don't have specific files, but we'll map to Ward (1).png etc.)
       img.src = `/Images/Game Art/Wards/Ward (${wardTypes[i]}).png`;
       img.style.cssText = 'width:100%; height:100%; object-fit:contain; mix-blend-mode:screen; filter: drop-shadow(0 0 12px #a0d07a);';
       inner.appendChild(img);
@@ -279,7 +279,7 @@ function updateWardVisuals(): void {
   }
 }
 
-// Inject animation styles (with new fracturing keyframes)
+// Inject animation styles (with fracturing keyframes)
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
   @keyframes wardOrbit {

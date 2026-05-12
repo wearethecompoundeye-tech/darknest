@@ -1,5 +1,5 @@
 // js/systems/gaze-event.ts – Full Gaze system with ward patterns, stress, confront hollow, tiered rewards
-// Kalgoth’s AI now taunts at the start and end of each Gaze. No duplicate confrontHollow file needed.
+// Kalgoth’s AI now taunts at the start and end of each Gaze. Uses enhanced UI layer.
 
 import { signal } from '@preact/signals-core';
 import { batch } from '@preact/signals-core';
@@ -15,7 +15,7 @@ import { gameBus } from '../core/eventBus.js';
 import { GameEvents, type GazeSurvivedPayload, type GazeDefeatPayload } from '../core/events.js';
 import { addLog } from '../ui/log-manager.js';
 import { playSfx, startLoop, stopLoop } from '../audio/sfx.js';
-import { showGazeUI, updateGazeUI, hideGazeUI } from '../ui/gaze-ui.js';
+import { showGazeUI, updateGazeUI, hideGazeUI } from '../ui/gaze-ui-enhanced.js';
 import { el } from '../core/dom-helper.js';
 import { applyWardNooseReduction } from './familiar-manager.js';
 import { setGazeActive } from './day-cycle.js';

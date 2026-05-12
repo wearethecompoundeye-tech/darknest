@@ -1,7 +1,7 @@
 // js/data/cards.ts
-// Complete Card Compendium for Kalgoth's Gaze - Enhanced Edition
-// 100 cards with expanded stats, abilities, keywords, and combo synergies
-// Last updated: 2026-04-20
+// Complete Card Compendium for Kalgoth's Gaze – Enhanced Edition
+// 100+ cards with expanded stats, abilities, keywords, and combo synergies
+// Last updated: 2026-05-07
 
 export type CardType = 'entity' | 'spell' | 'enhancement' | 'land';
 export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -76,9 +76,9 @@ function getFramePath(rarity: CardRarity): string {
 
 export const allCards: Card[] = [
 
-  // ========== ENTITY CARDS (40) ==========
+  // ========== ENTITY CARDS (55) ==========
 
-  // --- Common Entities (12) ---
+  // --- Common Entities (15) ---
   {
     id: 'umbral_mite', name: 'Umbral Mite', type: 'entity', rarity: 'common', aspect: 'Void',
     image: '/Images/Game Art/Creatures/Umbral Mite.png', frame: getFramePath('common'),
@@ -200,8 +200,58 @@ export const allCards: Card[] = [
     ],
     flavor: 'A floating, disembodied hand of wax with a wick burning from its finger.'
   },
+  {
+    id: 'bone_mite', name: 'Bone Mite', type: 'entity', rarity: 'common', aspect: 'Death',
+    image: '/Images/Game Art/Creatures/bone_mite.png', frame: getFramePath('common'),
+    stats: { hp: 2, atk: 2, spd: 4, cun: 2, def: 0, res: 15, init: 3, loyalty: 45 },
+    abilities: [
+      { name: 'Infest', type: 'combat', trigger: 'onAttack', effect: '30% chance to reduce enemy ATK by 1 for 2 turns.' },
+      { name: 'Scavenger', type: 'expedition', effect: 'When defeating a Minion, gain +1 Bone Dust.' }
+    ],
+    flavor: 'A skittering fragment of death, eager to strip flesh from bone.'
+  },
+  {
+    id: 'mist_wisp', name: 'Mist Wisp', type: 'entity', rarity: 'common', aspect: 'Air',
+    image: '/Images/Game Art/Creatures/mist_wisp.png', frame: getFramePath('common'),
+    stats: { hp: 3, atk: 1, spd: 5, cun: 5, def: 0, res: 25, init: 6, loyalty: 50 },
+    abilities: [
+      { name: 'Veil', type: 'combat', effect: '30% chance to dodge any attack.' },
+      { name: 'Guiding Light', type: 'expedition', effect: 'Wards cost -1 CUN to bypass.' }
+    ],
+    flavor: 'A tiny cloud of sentient mist, always drifting toward the unknown.'
+  },
+  {
+    id: 'moss_whelp', name: 'Moss Whelp', type: 'entity', rarity: 'common', aspect: 'Life',
+    image: '/Images/Game Art/Creatures/moss_whelp.png', frame: getFramePath('common'),
+    stats: { hp: 4, atk: 2, spd: 3, cun: 2, def: 1, res: 15, init: 2, loyalty: 80 },
+    abilities: [
+      { name: 'Regrow', type: 'combat', trigger: 'onTurnStart', effect: 'Heal 1 HP.' },
+      { name: 'Forest Camouflage', type: 'expedition', effect: 'Traps have -1 difficulty to disarm.' }
+    ],
+    flavor: 'A pup of living moss, playful yet fiercely protective of its grove.'
+  },
+  {
+    id: 'pincer_snap', name: 'Pincer Snap', type: 'entity', rarity: 'common', aspect: 'Water',
+    image: '/Images/Game Art/Creatures/Pincer Snap.png', frame: getFramePath('common'),
+    stats: { hp: 5, atk: 4, spd: 3, cun: 1, def: 2, res: 5, init: 3, loyalty: 65 },
+    abilities: [
+      { name: 'Crushing Grip', type: 'combat', trigger: 'onAttack', effect: 'If enemy is below 50% HP, deal +3 damage.' },
+      { name: 'Ambush', type: 'expedition', effect: 'First attack against a Minion deals double damage.' }
+    ],
+    flavor: 'A clawed horror from the briny deep, ever hungry for prey.'
+  },
+  {
+    id: 'slime_trail', name: 'Slime Trail', type: 'entity', rarity: 'common', aspect: 'Water',
+    image: '/Images/Game Art/Creatures/Slime Trail.png', frame: getFramePath('common'),
+    stats: { hp: 3, atk: 1, spd: 3, cun: 1, def: 1, res: 30, init: 1, loyalty: 50 },
+    abilities: [
+      { name: 'Slick', type: 'combat', trigger: 'onDamage', effect: '30% chance to dodge and leave slime, reducing enemy ATK by 1 next turn.' },
+      { name: 'Gooey', type: 'passive', effect: 'Immune to slowing effects.' }
+    ],
+    flavor: 'A living puddle of translucent ooze, leaving a shimmering trail.'
+  },
 
-  // --- Uncommon Entities (10) ---
+  // --- Uncommon Entities (15) ---
   {
     id: 'cinder_wyrm', name: 'Cinder Wyrm', type: 'entity', rarity: 'uncommon', aspect: 'Fire',
     image: '/Images/Game Art/Creatures/Cinder Wyrm.png', frame: getFramePath('uncommon'),
@@ -302,8 +352,78 @@ export const allCards: Card[] = [
     ],
     flavor: 'A giant snail with a shell of cooled volcanic rock, crisscrossed with lava veins.'
   },
+  {
+    id: 'carrion_bloom', name: 'Carrion-Bloom', type: 'entity', rarity: 'uncommon', aspect: 'Death',
+    image: '/Images/Game Art/Creatures/Carrion‑Bloom.png', frame: getFramePath('uncommon'),
+    stats: { hp: 5, atk: 3, spd: 2, cun: 3, def: 1, res: 20, init: 2, loyalty: 55 },
+    abilities: [
+      { name: 'Necrotic Spores', type: 'combat', trigger: 'onTurnStart', effect: 'Heal all Death allies for 1 HP.' },
+      { name: 'Wilt', type: 'passive', effect: 'When below 50% HP, gain +2 ATK and lose 1 DEF.' }
+    ],
+    flavor: 'A parasitic bloom that feeds on decay, its petals dripping with necrotic nectar.'
+  },
+  {
+    id: 'frost_weaver_spider', name: 'Frost-Weaver Spider', type: 'entity', rarity: 'uncommon', aspect: 'Water',
+    image: '/Images/Game Art/Creatures/Frost‑Weaver Spider.png', frame: getFramePath('uncommon'),
+    stats: { hp: 5, atk: 3, spd: 3, cun: 3, def: 2, res: 20, init: 3, loyalty: 60 },
+    abilities: [
+      { name: 'Web Trap', type: 'combat', trigger: 'onAttack', effect: '50% chance to reduce enemy SPD by 2 for 1 turn.' },
+      { name: 'Cold Snap', type: 'passive', effect: 'Water spells deal +1 damage.' }
+    ],
+    flavor: 'Its silk is woven from frozen mist, chilling whatever it touches.'
+  },
+  {
+    id: 'furnace_hound', name: 'Furnace Hound', type: 'entity', rarity: 'uncommon', aspect: 'Fire',
+    image: '/Images/Game Art/Creatures/Furnace Hound.png', frame: getFramePath('uncommon'),
+    stats: { hp: 7, atk: 5, spd: 3, cun: 1, def: 2, res: 5, init: 4, loyalty: 70 },
+    abilities: [
+      { name: 'Overheat', type: 'combat', trigger: 'onAttack', effect: 'Deals +2 damage but takes 1 recoil damage.' },
+      { name: 'Flame Aura', type: 'passive', effect: 'Adjacent enemies have -1 ATK.' }
+    ],
+    flavor: 'A beast of molten iron, its breath turns stone to slag.'
+  },
+  {
+    id: 'howling_wraith', name: 'Howling Wraith', type: 'entity', rarity: 'uncommon', aspect: 'Air',
+    image: '/Images/Game Art/Creatures/Howling Wraith.png', frame: getFramePath('uncommon'),
+    stats: { hp: 3, atk: 2, spd: 6, cun: 4, def: 0, res: 15, init: 8, loyalty: 40 },
+    abilities: [
+      { name: 'Sonic Wail', type: 'combat', trigger: 'onSummon', effect: 'All enemies have -1 initiative for 1 turn.' },
+      { name: 'Haunting', type: 'expedition', effect: 'Reveal two extra tiles when exploring.' }
+    ],
+    flavor: 'The echo of a forgotten scream, given form by the wind.'
+  },
+  {
+    id: 'screaming_gale', name: 'Screaming Gale', type: 'entity', rarity: 'uncommon', aspect: 'Air',
+    image: '/Images/Game Art/Creatures/Screaming Gale.png', frame: getFramePath('uncommon'),
+    stats: { hp: 4, atk: 3, spd: 5, cun: 3, def: 0, res: 15, init: 7, loyalty: 55 },
+    abilities: [
+      { name: 'Gust', type: 'expedition', effect: 'Push Minions back one tile (avoid combat).' },
+      { name: 'Wind Shear', type: 'combat', effect: 'All Air entities gain +1 SPD.' }
+    ],
+    flavor: 'A howling tempest compressed into an angry spirit.'
+  },
+  {
+    id: 'shard_eater_ooze', name: 'Shard-Eater Ooze', type: 'entity', rarity: 'uncommon', aspect: 'Void',
+    image: '/Images/Game Art/Creatures/Shard‑Eater Ooze.png', frame: getFramePath('uncommon'),
+    stats: { hp: 6, atk: 3, spd: 2, cun: 2, def: 3, res: 20, init: 1, loyalty: 50 },
+    abilities: [
+      { name: 'Acidic Touch', type: 'combat', trigger: 'onAttack', effect: 'Reduces enemy DEF by 1 permanently.' },
+      { name: 'Absorb', type: 'expedition', effect: 'When destroying a Trap, heal 2 HP.' }
+    ],
+    flavor: 'A gelatinous mass that devours magical shards, growing stronger.'
+  },
+  {
+    id: 'silt_shifter', name: 'Silt-Shifter', type: 'entity', rarity: 'uncommon', aspect: 'Earth',
+    image: '/Images/Game Art/Creatures/Silt‑Shifter.png', frame: getFramePath('uncommon'),
+    stats: { hp: 5, atk: 4, spd: 3, cun: 2, def: 3, res: 10, init: 2, loyalty: 65 },
+    abilities: [
+      { name: 'Mudslide', type: 'combat', trigger: 'onAttack', effect: '40% chance to reduce enemy SPD by 2.' },
+      { name: 'Camouflage', type: 'expedition', effect: 'Traps are 20% easier to disarm.' }
+    ],
+    flavor: 'A creature of animated silt, constantly reshaping itself.'
+  },
 
-  // --- Rare Entities (8) ---
+  // --- Rare Entities (12) ---
   {
     id: 'verdant_spriggan', name: 'Verdant Spriggan', type: 'entity', rarity: 'rare', aspect: 'Life',
     image: '/Images/Game Art/Creatures/Verdant Spriggan.png', frame: getFramePath('rare'),
@@ -384,8 +504,48 @@ export const allCards: Card[] = [
     ],
     flavor: 'An ancient, floating book bound in pale, tattooed skin.'
   },
+  {
+    id: 'creeping_dread', name: 'Creeping Dread', type: 'entity', rarity: 'rare', aspect: 'Void',
+    image: '/Images/Game Art/Creatures/Creeping Dread.png', frame: getFramePath('rare'),
+    stats: { hp: 4, atk: 4, spd: 5, cun: 4, def: 0, res: 25, init: 7, loyalty: 35 },
+    abilities: [
+      { name: 'Mind Fracture', type: 'combat', trigger: 'onAttack', effect: '40% chance to reduce enemy CUN by 2 for 2 turns.' },
+      { name: 'Lurker', type: 'expedition', effect: 'Can bypass one Ward without a minigame.' }
+    ],
+    flavor: 'A living shadow that feeds on the terror it creates.'
+  },
+  {
+    id: 'iron_centipede', name: 'Iron Centipede', type: 'entity', rarity: 'rare', aspect: 'Earth',
+    image: '/Images/Game Art/Creatures/iron_centipede.png', frame: getFramePath('rare'),
+    stats: { hp: 10, atk: 6, spd: 2, cun: 1, def: 5, res: 10, init: 1, loyalty: 75 },
+    abilities: [
+      { name: 'Armoured Segments', type: 'passive', effect: 'Reduce all damage taken by 2.' },
+      { name: 'Burrow', type: 'combat', effect: 'When HP drops below 30%, heal 4 HP instantly (once per battle).', cooldown: 1 }
+    ],
+    flavor: 'A segmented horror of rusted iron, grinding through stone.'
+  },
+  {
+    id: 'thorn_warden_treant', name: 'Thorn-Warden Treant', type: 'entity', rarity: 'rare', aspect: 'Life',
+    image: '/Images/Game Art/Creatures/Thorn‑Warden Treant.png', frame: getFramePath('rare'),
+    stats: { hp: 8, atk: 5, spd: 2, cun: 3, def: 4, res: 15, init: 2, loyalty: 85 },
+    abilities: [
+      { name: 'Entangling Roots', type: 'combat', trigger: 'onAttack', effect: '50% chance to prevent enemy from acting next turn.' },
+      { name: 'Thorns', type: 'passive', effect: 'Deals 1 damage to attackers when hit.' }
+    ],
+    flavor: 'An ancient treant, its bark covered in venomous thorns.'
+  },
+  {
+    id: 'abyssal_stalker', name: 'Abyssal Stalker', type: 'entity', rarity: 'rare', aspect: 'Water',
+    image: '/Images/Game Art/Creatures/Abyssal Stalker.png', frame: getFramePath('rare'),
+    stats: { hp: 11, atk: 7, spd: 3, cun: 4, def: 3, res: 25, init: 4, loyalty: 40 },
+    abilities: [
+      { name: 'Abyssal Pull', type: 'combat', effect: 'Drag enemy closer, negating their Dodge chance.' },
+      { name: 'Deep Pressure', type: 'passive', effect: 'All Water entities deal +2 damage.' }
+    ],
+    flavor: 'A nightmare from the deepest chasm, its presence crushes hope.'
+  },
 
-  // --- Epic Entities (6) ---
+  // --- Epic Entities (8) ---
   {
     id: 'pyre_light_warden', name: 'Pyre-Light Warden', type: 'entity', rarity: 'epic', aspect: 'Fire',
     image: '/Images/Game Art/Creatures/Pyre-Light Warden.png', frame: getFramePath('epic'),
@@ -446,8 +606,28 @@ export const allCards: Card[] = [
     ],
     flavor: 'A giant moth with wings of stained glass depicting a forgotten creation myth.'
   },
+  {
+    id: 'obsidian_gargoyle', name: 'Obsidian Gargoyle', type: 'entity', rarity: 'epic', aspect: 'Earth',
+    image: '/Images/Game Art/Creatures/Obsidian Gargoyle.png', frame: getFramePath('epic'),
+    stats: { hp: 12, atk: 7, spd: 2, cun: 2, def: 6, res: 15, init: 2, loyalty: 90 },
+    abilities: [
+      { name: 'Stone Gaze', type: 'combat', trigger: 'onAttack', effect: '20% chance to petrify enemy (stun 1 turn).' },
+      { name: 'Vigilant', type: 'passive', effect: 'Allies gain +1 DEF.' }
+    ],
+    flavor: 'A silent sentinel carved from volcanic glass, its eyes pierce the soul.'
+  },
+  {
+    id: 'the_sneeze', name: 'The Sneeze', type: 'entity', rarity: 'epic', aspect: 'Void',
+    image: '/Images/Game Art/Creatures/The Sneeze.png', frame: getFramePath('epic'),
+    stats: { hp: 10, atk: 6, spd: 4, cun: 5, def: 2, res: 40, init: 6, loyalty: 10 },
+    abilities: [
+      { name: 'Reality Ripple', type: 'combat', trigger: 'onAttack', effect: '25% chance to banish a non‑boss Minion instantly.' },
+      { name: 'Chaos Wave', type: 'combat', effect: 'Each turn random effect: +2 ATK, +2 DEF, or deal 2 damage to all enemies.' }
+    ],
+    flavor: 'The physical manifestation of the universe’s most violent sneeze.'
+  },
 
-  // --- Legendary Entities (4) ---
+  // --- Legendary Entities (5) ---
   {
     id: 'null_elemental', name: 'Null Elemental', type: 'entity', rarity: 'legendary', aspect: 'Void',
     image: '/Images/Game Art/Creatures/Null Elemental.png', frame: getFramePath('legendary'),
@@ -487,6 +667,16 @@ export const allCards: Card[] = [
       { name: 'Soul Harvest', type: 'combat', trigger: 'onKill', effect: 'Summons a Wisp ally for 2 turns.' }
     ],
     flavor: 'A spectral fusion of the six fallen Acolytes, bound by chains of frozen sorrow.'
+  },
+  {
+    id: 'the_sneeze_entity', name: 'The Sneeze (Entity)', type: 'entity', rarity: 'legendary', aspect: 'Void',
+    image: '/Images/Game Art/Creatures/The Sneeze.png', frame: getFramePath('legendary'),
+    stats: { hp: 15, atk: 10, spd: 5, cun: 4, def: 4, res: 45, init: 7, loyalty: 0 },
+    abilities: [
+      { name: 'Cataclysmic Blast', type: 'combat', trigger: 'onSummon', effect: 'Deals 8 damage to all enemies and stuns them for 1 turn.' },
+      { name: 'Unravel', type: 'passive', effect: 'Enemy buffs are negated.' }
+    ],
+    flavor: 'The primordial sneeze that shattered the old world, now bound in a card.'
   },
 
   // ========== SPELL CARDS (25) ==========

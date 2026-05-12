@@ -1,6 +1,6 @@
 // js/ui/will-duel.ts
-// Will Duel minigame for Hollow Acolyte encounters
-import { effect } from '@preact/signals-core';
+// Will Duel minigame for Hollow Acolyte encounters – enhanced visuals & feedback
+
 import {
   will,
   maxWill,
@@ -18,9 +18,10 @@ import {
 } from '../core/state-signals.js';
 import { getCardById, type Card, type SpellStats } from '../data/cards.js';
 import { el } from '../core/dom-helper.js';
-import { playSfx, startLoop, stopLoop } from '../audio/sfx.js';
+import { playPool, startLoop, stopLoop } from '../audio/sfx.js';
 import { addLog } from './log-manager.js';
-import { whispSay } from './whisp-commentary.js';
+import { showBubble } from './whisp-chat.js';
+import { AttackEffects } from './attack-effects.js';
 
 export interface WillDuelConfig {
   hollowName: string;
@@ -37,7 +38,7 @@ interface DuelState {
   playerWillPower: number;
   successes: number;
   failures: number;
-  hand: Card[]; // Spell cards drawn
+  hand: Card[];
   battleLog: string[];
   phase: 'player' | 'hollow' | 'resolving';
 }
@@ -46,22 +47,23 @@ let currentConfig: WillDuelConfig | null = null;
 let duelState: DuelState | null = null;
 let duelModal: HTMLDivElement | null = null;
 
+// ── Public entry ──────────────────────────────────────────────────
 export function openWillDuel(config: WillDuelConfig): void {
   currentConfig = config;
-  
+
   // Calculate player's Will Power
   const baseWill = will.value;
   const circleBonus = Math.floor(circlePower.value / 5);
   const fragmentBonus = orbexFragments.value * 3;
   const whispBonus = familiar.value.level * 2;
   const masteryBonus = Math.floor(circleMastery.value / 2);
-  
+
   const playerWillPower = baseWill + circleBonus + fragmentBonus + whispBonus + masteryBonus;
-  
+
   // Draw hand (up to 3 spells from equipped)
   const equippedSpells = getEquippedCards('spell');
   const hand = equippedSpells.slice(0, 3);
-  
+
   duelState = {
     hollowResistance: config.baseResistance,
     maxResistance: config.baseResistance,
@@ -72,17 +74,18 @@ export function openWillDuel(config: WillDuelConfig): void {
     battleLog: [`You face ${config.hollowName}, a corrupted Acolyte.`],
     phase: 'player'
   };
-  
+
   if (duelModal) duelModal.remove();
   duelModal = createDuelModal();
   document.body.appendChild(duelModal);
   duelModal.style.display = 'flex';
-  
+
   renderDuelUI();
-  playSfx('duel_start');
   startLoop('demonSummonBg');
+  playPool('duel_start');
 }
 
+// ── Modal creation ────────────────────────────────────────────────
 function createDuelModal(): HTMLDivElement {
   const modal = document.createElement('div');
   modal.className = 'modal';
@@ -98,18 +101,21 @@ function createDuelModal(): HTMLDivElement {
   modal.style.zIndex = '2000';
   modal.style.justifyContent = 'center';
   modal.style.alignItems = 'center';
-  
+
   modal.innerHTML = `
     <div class="modal-content duel-content" style="max-width:700px; width:95%; background:#0a0508; border:2px solid #6a4a3a; border-radius:32px; padding:24px; box-shadow:0 0 0 1px #8a7a5a inset, 0 20px 40px #000; color:#e0d8cc;">
       <h3 style="margin:0 0 20px; color:#b8a890; text-align:center; text-shadow:0 0 10px #5a4a3a;">🌑 WILL DUEL 🌑</h3>
       <div style="display:flex; gap:20px;">
         <!-- Hollow Portrait -->
         <div style="flex:1; text-align:center;">
-          <div id="hollowPortrait" style="width:200px; height:250px; margin:0 auto; border:2px solid #5a4a3a; border-radius:16px; overflow:hidden; box-shadow:0 0 20px rgba(90,74,58,0.5);">
+          <div id="hollowPortrait" style="width:200px; height:250px; margin:0 auto; border:2px solid #5a4a3a; border-radius:16px; overflow:hidden; box-shadow:0 0 20px rgba(90,74,58,0.5); position:relative;">
             <img id="hollowImg" src="" style="width:100%; height:100%; object-fit:cover;">
+            <div id="hollowOverlay" style="position:absolute; inset:0; background:radial-gradient(circle, transparent 30%, rgba(80,0,0,0.5)); pointer-events:none;"></div>
           </div>
           <h4 id="hollowName" style="margin:10px 0 5px; color:#c0a0a0;">Hollow Acolyte</h4>
-          <div class="progress-bar" style="margin-bottom:5px;"><div id="resistanceBar" class="progress-fill" style="width:100%; background:#8a4a6a;"></div></div>
+          <div class="progress-bar" style="margin-bottom:5px; position:relative;">
+            <div id="resistanceBar" class="progress-fill" style="width:100%; background:#8a4a6a; transition: width 0.3s, background 0.3s;"></div>
+          </div>
           <span id="resistanceText">Resistance: 15/15</span>
         </div>
         <!-- Player Info -->
@@ -122,6 +128,10 @@ function createDuelModal(): HTMLDivElement {
               <p style="margin:5px 0;">✨ Successes: <span id="successCount">0/3</span></p>
               <p style="margin:5px 0;">💔 Failures: <span id="failureCount">0/2</span></p>
             </div>
+          </div>
+          <!-- Player portrait for visual feedback -->
+          <div style="margin-top:15px; text-align:center;">
+            <img id="playerAvatarDuel" src="/Images/Player Icon.png" style="width:80px; height:80px; border-radius:50%; border:2px solid #5a4a3a;">
           </div>
         </div>
       </div>
@@ -140,41 +150,49 @@ function createDuelModal(): HTMLDivElement {
       </div>
     </div>
   `;
-  
+
   modal.querySelector('#assertBtn')!.addEventListener('click', () => handleChoice('assert'));
   modal.querySelector('#empathizeBtn')!.addEventListener('click', () => handleChoice('empathize'));
   modal.querySelector('#invokeBtn')!.addEventListener('click', () => handleChoice('invoke'));
-  
+
   return modal;
 }
 
+// ── UI update ──────────────────────────────────────────────────────
 function renderDuelUI(): void {
   if (!duelState || !currentConfig) return;
-  
-  const hollowImg = el('hollowImg') as HTMLImageElement;
-  const hollowName = el('hollowName');
-  const resistanceBar = el('resistanceBar') as HTMLElement;
-  const resistanceText = el('resistanceText');
-  const willPowerDisplay = el('willPowerDisplay');
-  const successCount = el('successCount');
-  const failureCount = el('failureCount');
-  const duelLog = el('duelLog');
-  
+
+  const hollowImg = document.getElementById('hollowImg') as HTMLImageElement;
+  const hollowName = document.getElementById('hollowName');
+  const resistanceBar = document.getElementById('resistanceBar') as HTMLElement;
+  const resistanceText = document.getElementById('resistanceText');
+  const willPowerDisplay = document.getElementById('willPowerDisplay');
+  const successCount = document.getElementById('successCount');
+  const failureCount = document.getElementById('failureCount');
+  const duelLog = document.getElementById('duelLog');
+
   if (hollowImg) hollowImg.src = currentConfig.hollowPortrait;
   if (hollowName) hollowName.textContent = currentConfig.hollowName;
-  if (resistanceBar) resistanceBar.style.width = `${(duelState.hollowResistance / duelState.maxResistance) * 100}%`;
+  if (resistanceBar) {
+    const pct = (duelState.hollowResistance / duelState.maxResistance) * 100;
+    resistanceBar.style.width = `${pct}%`;
+    // Dynamic color
+    if (pct > 60) resistanceBar.style.background = '#8a4a6a';
+    else if (pct > 30) resistanceBar.style.background = '#c05050';
+    else resistanceBar.style.background = '#ff4444';
+  }
   if (resistanceText) resistanceText.textContent = `Resistance: ${duelState.hollowResistance}/${duelState.maxResistance}`;
   if (willPowerDisplay) willPowerDisplay.textContent = duelState.playerWillPower.toString();
   if (successCount) successCount.textContent = `${duelState.successes}/3`;
   if (failureCount) failureCount.textContent = `${duelState.failures}/2`;
-  
+
   if (duelLog) {
     duelLog.innerHTML = duelState.battleLog.map(msg => `<div>> ${msg}</div>`).join('');
     duelLog.scrollTop = duelLog.scrollHeight;
   }
-  
-  // Render hand
-  const handEl = el('spellHand');
+
+  // Render hand with tooltips
+  const handEl = document.getElementById('spellHand');
   if (handEl) {
     handEl.innerHTML = '';
     duelState.hand.forEach((spell, index) => {
@@ -185,11 +203,11 @@ function renderDuelUI(): void {
       handEl.innerHTML = '<p style="color:#a09080;">No spells equipped</p>';
     }
   }
-  
-  // Update button states
+
+  // Button states
   const buttons = ['assertBtn', 'empathizeBtn', 'invokeBtn'];
   buttons.forEach(id => {
-    const btn = el(id) as HTMLButtonElement;
+    const btn = document.getElementById(id) as HTMLButtonElement;
     if (btn) btn.disabled = duelState.phase !== 'player';
   });
 }
@@ -204,37 +222,39 @@ function createSpellElement(spell: Card, index: number): HTMLDivElement {
   div.style.overflow = 'hidden';
   div.style.transition = 'transform 0.15s';
   div.style.aspectRatio = '3/4';
-  
+  const stats = spell.stats as SpellStats;
   div.innerHTML = `
     <img src="${spell.image}" style="width:100%; height:100%; object-fit:cover;">
     <img src="${spell.frame}" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
     <div style="position:absolute; bottom:2px; left:2px; background:rgba(0,0,0,0.7); padding:2px 4px; border-radius:10px; font-size:0.6rem; color:#e0d8cc;">
-      ${(spell.stats as SpellStats).cost} Will
+      ${stats.cost}W
+    </div>
+    <div style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.7); padding:2px 4px; border-radius:10px; font-size:0.5rem; color:#e0d8cc; max-width:60px; text-align:right;">
+      ${stats.effect || ''}
     </div>
   `;
-  
+  div.title = `${spell.name}\n${stats.effect || ''}\nCost: ${stats.cost} Will`;
   div.addEventListener('click', () => handleSpellCast(index));
-  div.addEventListener('mouseenter', () => { div.style.transform = 'scale(1.05)'; });
+  div.addEventListener('mouseenter', () => { div.style.transform = 'scale(1.08)'; });
   div.addEventListener('mouseleave', () => { div.style.transform = 'scale(1)'; });
-  
   return div;
 }
 
+// ── Spell casting ──────────────────────────────────────────────────
 function handleSpellCast(index: number): void {
   if (!duelState || duelState.phase !== 'player') return;
-  
+
   const spell = duelState.hand[index];
   if (!spell) return;
-  
+
   const spellStats = spell.stats as SpellStats;
   if (will.value < spellStats.cost) {
     addLog('Not enough Will!', true);
     return;
   }
-  
+
   will.value -= spellStats.cost;
-  
-  // Apply spell effect (simplified for Will Duel)
+
   let effectMessage = '';
   let bonus = 0;
   if (spell.id.includes('sorrow') || spell.id.includes('gaze')) {
@@ -250,27 +270,35 @@ function handleSpellCast(index: number): void {
     bonus = 2;
     effectMessage = `disrupts the Hollow slightly.`;
   }
-  
+
   if (bonus > 0) {
     duelState.hollowResistance = Math.max(0, duelState.hollowResistance - bonus);
   }
-  
+
   duelState.battleLog.push(`You cast ${spell.name}: ${effectMessage}`);
   duelState.hand.splice(index, 1);
-  playSfx('card_play');
-  
+
+  // Visual feedback: particles on the Hollow portrait
+  const hollowContainer = document.getElementById('hollowPortrait');
+  if (hollowContainer) {
+    const rect = hollowContainer.getBoundingClientRect();
+    AttackEffects.play('rune', rect.left + rect.width / 2, rect.top + rect.height / 2, bonus, 'Void');
+  }
+
+  playPool('card_play');
   renderDuelUI();
   checkDuelEnd();
 }
 
+// ── Choice handling ────────────────────────────────────────────────
 function handleChoice(choice: 'assert' | 'empathize' | 'invoke'): void {
   if (!duelState || duelState.phase !== 'player') return;
-  
+
   let successChance = 0;
   let willCost = 0;
   let nooseReduction = 0;
   let message = '';
-  
+
   switch (choice) {
     case 'assert':
       willCost = 10;
@@ -303,17 +331,24 @@ function handleChoice(choice: 'assert' | 'empathize' | 'invoke'): void {
       message = 'You channel the power of Orbex itself.';
       break;
   }
-  
+
   duelState.phase = 'resolving';
   renderDuelUI();
-  
   duelState.battleLog.push(message);
-  
+
+  // Visual feedback: highlight the chosen button
+  const btnId = choice === 'assert' ? 'assertBtn' : (choice === 'empathize' ? 'empathizeBtn' : 'invokeBtn');
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.style.boxShadow = '0 0 20px #ffd700';
+    setTimeout(() => { if (btn) btn.style.boxShadow = ''; }, 600);
+  }
+
   setTimeout(() => {
     if (!duelState) return;
-    
+
     const success = Math.random() < successChance;
-    
+
     if (success) {
       duelState.successes++;
       duelState.hollowResistance = Math.max(0, duelState.hollowResistance - 5);
@@ -321,18 +356,25 @@ function handleChoice(choice: 'assert' | 'empathize' | 'invoke'): void {
       if (nooseReduction > 0) {
         kalgothsNoose.value = Math.max(0, kalgothsNoose.value - nooseReduction);
       }
-      playSfx('choice_empathize');
+      playPool('choice_empathize');
     } else {
       duelState.failures++;
       duelState.playerWillPower -= 5;
       health.value = Math.max(0, health.value - 5);
       duelState.battleLog.push(`Failure. The Hollow resists.`);
-      playSfx('duel_fail');
+      playPool('duel_fail');
     }
-    
+
+    // Visual: particle burst at player avatar
+    const playerAvatar = document.getElementById('playerAvatarDuel');
+    if (playerAvatar) {
+      const rect = playerAvatar.getBoundingClientRect();
+      AttackEffects.play(success ? 'radial' : 'slash', rect.left + rect.width / 2, rect.top + rect.height / 2, 10, success ? 'Life' : 'Death');
+    }
+
     renderDuelUI();
     checkDuelEnd();
-    
+
     if (duelState.successes < 3 && duelState.failures < 2 && duelState.hollowResistance > 0) {
       duelState.phase = 'player';
       renderDuelUI();
@@ -342,14 +384,20 @@ function handleChoice(choice: 'assert' | 'empathize' | 'invoke'): void {
 
 function checkDuelEnd(): void {
   if (!duelState || !currentConfig) return;
-  
+
   if (duelState.successes >= 3) {
     // Victory
     duelState.battleLog.push(`Victory! The Hollow Acolyte is purified.`);
     renderDuelUI();
     stopLoop('demonSummonBg');
-    playSfx('duel_success');
-    
+    playPool('victory_fanfare');
+    showBubble('You did it! The Hollow is no more.', false);
+    // Victory particles over the whole screen
+    const hollowPortrait = document.getElementById('hollowPortrait');
+    if (hollowPortrait) {
+      const rect = hollowPortrait.getBoundingClientRect();
+      AttackEffects.play('critical', rect.left + rect.width / 2, rect.top + rect.height / 2, 20, 'Life');
+    }
     setTimeout(() => {
       if (currentConfig?.onVictory) currentConfig.onVictory();
       closeDuelModal();
@@ -359,8 +407,8 @@ function checkDuelEnd(): void {
     duelState.battleLog.push(`Defeat... The Hollow escapes.`);
     renderDuelUI();
     stopLoop('demonSummonBg');
-    playSfx('duel_fail');
-    
+    playPool('duel_fail');
+    showBubble('The Hollow slips away...', false);
     setTimeout(() => {
       if (currentConfig?.onDefeat) currentConfig.onDefeat();
       closeDuelModal();
@@ -371,8 +419,8 @@ function checkDuelEnd(): void {
     duelState.battleLog.push(`The Hollow's resistance is shattered! Victory!`);
     renderDuelUI();
     stopLoop('demonSummonBg');
-    playSfx('duel_success');
-    
+    playPool('victory_fanfare');
+    showBubble('Shattered! The Hollow crumbles.', false);
     setTimeout(() => {
       if (currentConfig?.onVictory) currentConfig.onVictory();
       closeDuelModal();

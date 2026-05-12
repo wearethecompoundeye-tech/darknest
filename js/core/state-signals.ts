@@ -49,7 +49,7 @@ const initialState: GameState = {
     cryptPhlegm: 10,
     bansheeSalts: 5,
     wyrmEye: 0,
-    demonIchor: 4,
+    demonIchor: 0,
     boneDust: 0,
     shadowResin: 0
   },
@@ -455,7 +455,74 @@ export const isGazeEventActive = computed(() => isGazeActive.value);
 export let addLog: ((msg: string, isErr?: boolean, speaker?: string) => void) | null = null;
 export function setAddLog(fn: typeof addLog): void { addLog = fn; }
 export function notifyStateChange(): void {}
-export function initializeState(): void {}
+export function initializeState(): void {
+  // fully reset all signals to their defaults
+  playerName.value = initialState.playerName;
+  ingredients.value = { ...initialState.ingredients };
+  crafted.value = { ...initialState.crafted };
+  knownRunes.value = [...initialState.knownRunes];
+  selectedRunes.value = [...initialState.selectedRunes];
+  runeSlots.value = [...initialState.runeSlots] as [string, string, string];
+  masteryLevel.value = initialState.masteryLevel;
+  masteryXP.value = initialState.masteryXP;
+  masteryNeeded.value = initialState.masteryNeeded;
+  storyProgress.value = initialState.storyProgress;
+  will.value = initialState.will;
+  health.value = initialState.health;
+  maxWill.value = initialState.maxWill;
+  suspicion.value = initialState.suspicion;
+  seedResonance.value = initialState.seedResonance;
+  maxSeedResonance.value = initialState.maxSeedResonance;
+  quotaRemaining.value = initialState.quotaRemaining;
+  actionCounter.value = initialState.actionCounter;
+  tithePaidThisDay.value = initialState.tithePaidThisDay;
+  timerSeconds.value = initialState.timerSeconds;
+  revealedRituals.value = new Set(initialState.revealedRituals);
+  hasSpecialIngredient.value = initialState.hasSpecialIngredient;
+  temporaryBuffs.value = { ...initialState.temporaryBuffs };
+  familiar.value = { ...initialState.familiar };
+  lastPetTime.value = initialState.lastPetTime;
+  lastForageTime.value = initialState.lastForageTime;
+  totalSummons.value = initialState.totalSummons;
+  totalExplorations.value = initialState.totalExplorations;
+  totalWillClashWins.value = initialState.totalWillClashWins;
+  tutorial.value = { ...initialState.tutorial };
+  discoveries.value = { ...initialState.discoveries };
+  currentMaze.value = initialState.currentMaze;
+  circleQuality.value = initialState.circleQuality;
+  circleIntegrity.value = initialState.circleIntegrity;
+  ledgerEntries.value = [...initialState.ledgerEntries];
+  ashAvailable.value = initialState.ashAvailable;
+  pendingAshRemains.value = initialState.pendingAshRemains;
+  itemUsageDaily.value = { ...initialState.itemUsageDaily };
+  orbexFragments.value = initialState.orbexFragments;
+  maxOrbexFragments.value = initialState.maxOrbexFragments;
+  corruptionLevel.value = initialState.corruptionLevel;
+  orbexBoons.value = [...initialState.orbexBoons];
+  alcovesDiscovered.value = initialState.alcovesDiscovered;
+  mazePathsUnlocked.value = [...initialState.mazePathsUnlocked];
+  kalgothsNoose.value = initialState.kalgothsNoose ?? 10;
+  circlePower.value = initialState.circlePower ?? 0;
+  circleMastery.value = initialState.circleMastery ?? 0;
+  empoweredCircle.value = false;
+  braidedTracePhases.value = 0;
+  gazeWardCount.value = 0;
+  gazeWardImageIds.value = [];
+  ownedCards.value = [...initialOwnedCards];
+  equippedEntitySlots.value = ['umbral_mite', 'ember_hound'];
+  equippedSpellSlots.value = ['void_gaze', 'ember_burst'];
+  equippedEnhancementSlots.value = ['iron_will'];
+  equippedLandSlots.value = ['void_spring'];
+  ownedRelics.value = ['ring_of_shadows'];
+  equippedRelics.value = new Array(relicSlots).fill(null);
+  gazeIntensity.value = initialState.gazeIntensity ?? 5;
+  wardIntegrities.value = [...initialState.wardIntegrities ?? [100, 100, 100]];
+  gazeSurvivalCount.value = initialState.gazeSurvivalCount ?? 0;
+  dailyConsumableSlots.value = [...initialState.dailyConsumableSlots ?? ['', '', '']];
+  isGazeActive.value = initialState.isGazeActive ?? false;
+  gazePhase.value = initialState.gazePhase ?? 'inactive';
+  kalgothsPower.value = 100;
+}
 
 export function updateState(updater: () => void): void { batch(updater); autoSave(); }
 

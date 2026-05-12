@@ -7,11 +7,6 @@ node_modules/
 # Build output – can be rebuilt with Vite
 dist/
 
-# Public folder looks like a copy of assets; ignore it if it's not needed
-# (if it IS used by Vite for dev server, ignore only the duplicate assets? 
-#  But from the tree, it seems like a mirror of assets/ – ignore for safety)
-public/
-
 # Backup files
 *.bak
 *.zip

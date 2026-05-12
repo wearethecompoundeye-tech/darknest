@@ -24,6 +24,7 @@ export function isDevMode(): boolean { return devMode; }
 
 export function initDevMode(): void {
   // Keyboard shortcut: Ctrl+Shift+D
+if (import.meta.env.DEV) {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'D') {
       e.preventDefault();

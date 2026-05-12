@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/darknest/',
   server: {
     open: false,
     port: 3000,

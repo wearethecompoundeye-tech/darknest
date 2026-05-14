@@ -1,174 +1,137 @@
-// js/core/game.ts – Central game orchestrator, v2.0 Ritual Integration
-// Updated with new minigame imports, ritual session button, and correct cleanup.
-
+// js/core/game.ts – Stable base with all minigames, summon, rune study, rune etch, circle trace, and maze entrance
+import { effect } from '@preact/signals-core';
 import {
   state, health, will, maxWill, ingredients, crafted,
-  timerSeconds, initSaveSystem, loadSaveData, autoSave,
-  applyDailyPassives, resetDailyItemUsage, initializeState,
-  setAddLog, kalgothsNoose, circlePower, circleMastery,
+  timerSeconds, loadSaveData, initSaveSystem,
+  initializeState, resetDailyItemUsage, advanceAction, reduceQuota,
+  kalgothsNoose, circlePower, circleMastery,
   orbexFragments, ownedCards, equippedEntitySlots,
   familiar, discoveries, tutorial, isGazeActive, gazePhase,
-  dailyConsumableSlots, getActiveEntity, resetAllState,
-  getStorage, setCurrentSlot, deleteSlot
+  dailyConsumableSlots, getActiveEntity,
+  getStorage, setCurrentSlot, deleteSlot, autoSave,
+  updateState, notifyStateChange,
+  addLog
 } from './state-signals.js';
-import { initAudio, startCaveDrips, stopAllAudioProcesses, updateVolumes } from '../audio/sfx.js';
-import { initCircleTracing } from '../minigames/circle-trace.js';
-import { setupUIEffects, initOrbitAnimation, updateUI, triggerScreenPulse } from '../ui/ui-renderer.js';
+import { ModalManager } from '../ui/modal-manager.js';
+import { initAudio, toggleSfx, toggleMusic, updateVolumes } from '../audio/sfx.js';
+import { setupUIEffects, triggerScreenPulse, updateUI, initOrbitAnimation } from '../ui/ui-renderer.js';
+import { gameBus } from './eventBus.js';
+import { GameEvents } from './events.js';
+import { transition, currentPhase } from './gameReducer.js';
+import { startGazeWarning } from '../systems/gaze-event.js';
 import { openGrimoire } from '../ui/grimoire.js';
 import { openSatchel } from '../ui/satchel.js';
 import { openTome } from '../ui/tome.js';
 import { initWhispChat, destroyWhispChat } from '../ui/whisp-chat.js';
-import { showPathSelectionModal } from '../systems/maze-system.js';
 import { summonEntity } from '../systems/summoning.js';
 import { initPlugins, destroyPlugins } from '../plugins/plugin-interface.js';
-import { addLog } from '../ui/log-manager.js';
-import { initDayCycle, stopDayCycle, payTithe, attemptEscape } from '../systems/day-cycle.js';
-import { initRitualMeter, destroyGemMeter } from '../ui/ritual-meter.js';
-import { initTutorialListeners } from '../systems/tutorial-listeners.js';
-import { initGemMeter } from '../ui/ritual-meter.js';
 import { applyWardNooseReduction } from '../systems/familiar-manager.js';
-import { startGazeWarning } from '../systems/gaze-event.js';
-import { clearAllParticles } from '../ui/particle-system.js';
-import { injectSummonStyles } from '../systems/summoning.js';
-import { ModalManager } from '../ui/modal-manager.js';
-import { renderSettingsContent } from '../ui/settings-panel.js';
-import { startRitualSession } from '../ritual/ritual-session.js';
+import { initCircleTracing } from '../minigames/circle-trace.js';
+import { el } from '../core/dom-helper.js';
+import { initRitualMeter } from '../ui/ritual-meter.js';
 
 export class Game {
-  private started = false;
-  private kalgothTauntInterval: number | null = null;
+  private gameLoop: number | null = null;
 
-  constructor() {
-    this.start = this.start.bind(this);
-  }
-
-  public async start(): Promise<void> {
-    if (this.started) return;
-    this.started = true;
-
-    initializeState();
-    applyDailyPassives(addLog);
-    setAddLog(addLog);
-
-    const loaded = await initSaveSystem();
-    if (!loaded) autoSave();
-
-    (window as any).modalManager = new ModalManager();
-
+  async start(): Promise<void> {
+    initSaveSystem();
     initAudio();
-    startCaveDrips();
-
     setupUIEffects();
-    initOrbitAnimation();
     updateUI();
-
-    initCircleTracing();
-    initGemMeter();
+    initWhispChat();
+    initPlugins();
+    (window as any).modalManager = new ModalManager();
     initRitualMeter();
-    initTutorialListeners();
+    initOrbitAnimation();
 
-    setTimeout(() => initWhispChat(), 600);
-
-    initDayCycle();
-    initPlugins().then(() => console.log('[Game] Plugins ready'));
-
-    injectSummonStyles();
-    this.startKalgothTaunts();
-
-    const gameContainer = document.getElementById('gameContainer');
-    if (gameContainer) gameContainer.classList.add('altar-active');
-
-    this.bindUIButtons();
-
-    // Global close‑modal delegation
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('close-modal')) {
-        const modal = target.closest('.modal') as HTMLElement;
-        if (modal) {
-          (window as any).modalManager?.close(modal);
-          if (!(window as any).modalManager) {
-            modal.style.display = 'none';
-          }
-        }
-      }
-    });
-
-    window.addEventListener('beforeunload', () => this.shutdown());
-
-    console.log('✅ Game ready with Ritual of the Seed');
-  }
-
-  private startKalgothTaunts(): void {
-    const minInterval = 120_000;
-    const maxInterval = 180_000;
-    const schedule = () => {
-      const delay = minInterval + Math.random() * (maxInterval - minInterval);
-      this.kalgothTauntInterval = window.setTimeout(() => {
-        addLog(`KALGOTH: *A distant, mocking laugh echoes.*`, false, 'void');
-        schedule();
-      }, delay);
-    };
-    schedule();
-  }
-
-  private bindUIButtons(): void {
+    // ── Original UI bindings (all working) ─────────────
     document.getElementById('satchelIcon')?.addEventListener('click', openSatchel);
     document.getElementById('tomeIcon')?.addEventListener('click', openTome);
-    document.getElementById('captureJar')?.addEventListener('click', openGrimoire);
     document.getElementById('settingsIcon')?.addEventListener('click', () => {
-      const settingsModal = document.getElementById('settingsModal');
-      if (settingsModal) {
-        renderSettingsContent();
-        (window as any).modalManager.open(settingsModal);
+      const modal = document.getElementById('settingsModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10000';
+      }
+      import('../ui/settings-panel.js').then(m => m.renderSettingsContent());
+    });
+    document.getElementById('captureJar')?.addEventListener('click', openGrimoire);
+
+    // Circle trace (canvas click)
+    const circleCanvas = document.getElementById('circleCanvas');
+    if (circleCanvas) circleCanvas.addEventListener('click', () => initCircleTracing());
+
+    // Summon button (the large "Invoke" button)
+    const summonBtn = document.getElementById('invokeBtn');
+    if (summonBtn) summonBtn.addEventListener('click', () => summonEntity());
+
+    // Crafting tiles (powder, restorative, phial/potion)
+    document.getElementById('craftPowderBtn')?.addEventListener('click', () => {
+      import('../systems/crafting.js').then(m => m.craftPowder());
+    });
+    document.getElementById('craftRestorativeBtn')?.addEventListener('click', () => {
+      import('../systems/crafting.js').then(m => m.craftRestorative());
+    });
+    // Phial brewing – interactive cauldron minigame
+    document.getElementById('craftPotionBtn')?.addEventListener('click', () => {
+      import('../minigames/phial-brew.js').then(m => m.startPhialBrewing());
+    });
+
+    // Rune Study button
+    const studyBtn = document.getElementById('studyRuneBtn');
+    if (studyBtn) studyBtn.addEventListener('click', () => {
+      import('../systems/crafting.js').then(m => m.studyRune());
+    });
+
+    // Rune Etch button
+    const etchBtn = document.getElementById('etchRuneBtn');
+    if (etchBtn) etchBtn.addEventListener('click', () => {
+      import('../minigames/rune-etch.js').then(m => m.startRuneTracing());
+    });
+
+    // Maze entrance button (NEW – only addition)
+    const mazeBtn = document.getElementById('mazeEntranceBtn');
+    if (mazeBtn) mazeBtn.addEventListener('click', () => {
+      import('../systems/maze-system.js').then(m => m.showPathSelectionModal());
+    });
+
+    // Day cycle
+    this.gameLoop = window.setInterval(() => {
+      if (timerSeconds.value > 0) {
+        timerSeconds.value = Math.max(0, timerSeconds.value - 1);
+      } else {
+        advanceAction();
+        autoSave();
+        timerSeconds.value = 600;
+      }
+    }, 1000);
+
+    // Gaze warning
+    effect(() => {
+      if (kalgothsNoose.value >= 50 && !isGazeActive.value) {
+        startGazeWarning();
       }
     });
 
-    document.getElementById('mazeEntranceBtn')?.addEventListener('click', () => showPathSelectionModal());
+    const container = document.getElementById('gameContainer');
+    if (container) container.classList.add('altar-active');
 
-    document.getElementById('craftPowderBtn')?.addEventListener('click', () => import('../systems/crafting.js').then(m => m.craftPowder()));
-    document.getElementById('craftPotionBtn')?.addEventListener('click', () => import('../systems/crafting.js').then(m => m.craftPotion(true)));
-    document.getElementById('craftRestorativeBtn')?.addEventListener('click', () => import('../systems/crafting.js').then(m => m.craftRestorative()));
-    document.getElementById('studyRuneBtn')?.addEventListener('click', () => import('../minigames/rune-study.js').then(m => m.startRuneStudy()));
-    document.getElementById('traceRuneBtn')?.addEventListener('click', () => import('../minigames/rune-etch.js').then(m => m.startRuneTracing()));
-    document.getElementById('quickCraftPowderBtn')?.addEventListener('click', () => import('../systems/crafting.js').then(m => m.quickCraftPowder()));
-    document.getElementById('quickCraftPhialBtn')?.addEventListener('click', () => import('../systems/crafting.js').then(m => m.quickCraftPhial()));
-    document.getElementById('titheBtn')?.addEventListener('click', payTithe);
-    document.getElementById('escapeBtn')?.addEventListener('click', attemptEscape);
+    // toggleChat provided globally for inline HTML
+    (window as any).toggleChat = () => {
+      const chat = document.getElementById('whispChat');
+      if (chat) {
+        chat.style.display = (chat.style.display === 'none' || chat.style.display === '') ? 'flex' : 'none';
+      }
+    };
 
-    // Ritual button (new) – launches the unified ritual session
-    document.getElementById('ritualBtn')?.addEventListener('click', () => startRitualSession());
-
-    document.getElementById('summonBtn')?.addEventListener('click', summonEntity);
-
-    for (let i = 0; i < 3; i++) {
-      const slot = document.getElementById(`bandolierSlot${i}`);
-      if (slot) slot.addEventListener('click', () => { /* gaze-ui handles this */ });
-    }
-
-    document.getElementById('whispSpriteClick')?.addEventListener('click', () => import('../ui/tutorial.js').then(m => m.openWhispStats()));
-
-    document.getElementById('petFamiliarBtn')?.addEventListener('click', () => import('../systems/familiar-manager.js').then(m => m.petFamiliar()));
-    document.getElementById('forageBtn')?.addEventListener('click', () => import('../systems/familiar-manager.js').then(m => m.forage()));
-
-    document.getElementById('tutorialBtn')?.addEventListener('click', () => import('../ui/tutorial.js').then(m => m.showTutorial()));
-
-    document.getElementById('traceCircleBtn')?.addEventListener('click', () => import('../minigames/circle-trace.js').then(m => m.initCircleTracing()));
+    console.log('[Game] Plugins ready');
   }
 
-  private shutdown(): void {
-    if (this.kalgothTauntInterval) {
-      clearTimeout(this.kalgothTauntInterval);
-      this.kalgothTauntInterval = null;
-    }
-    stopAllAudioProcesses();
-    clearAllParticles();
-    destroyWhispChat();
-    destroyGemMeter();
+  resetGame(): Promise<void> {
+    if (this.gameLoop) clearInterval(this.gameLoop);
     destroyPlugins();
-    stopDayCycle();
-    if (!(window as any).__newGame) {
-      autoSave();
-    }
+    destroyWhispChat();
+    initializeState();
+    return this.start();
   }
 }

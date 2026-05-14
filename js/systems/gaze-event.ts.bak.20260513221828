@@ -48,6 +48,8 @@ export function startGazeWarning(): void {
 
   gazePhase.value = 'warning';
   transition({ type: 'GAZE_WARNING', intensity: gazeIntensity.value });
+  isGazeActive.value = true;
+  setGazeActive(true);
 
   const gameContainer = el('gameContainer');
   if (gameContainer) gameContainer.style.pointerEvents = 'none';
@@ -87,8 +89,6 @@ export function forceStartGazeEvent(): void {
 function startGazeEvent(): void {
   if (warningTimeout) { clearTimeout(warningTimeout); warningTimeout = null; }
   stopLoop('gazeWarningBg');
-  isGazeActive.value = true;
-  setGazeActive(true);
   gazePhase.value = 'active';
   transition({ type: 'GAZE_START', intensity: gazeIntensity.value });
 
@@ -122,14 +122,10 @@ function calculateDrainRate(): number {
   let base = CONSTANTS.GAZE_BASE_DRAIN_RATE + (gazeIntensity.value * CONSTANTS.GAZE_DRAIN_PER_INTENSITY)
     - (circleMastery.value * 0.2);
 
-  // Circle power provides a direct percentage reduction
-  base *= (1 - circlePower.value * 0.005);
-
   const activeWards = gazeWardPattern.value.filter(w => w > 0).length;
   base *= (1 - activeWards * 0.2);
 
-  // Orbex fragments help resist the Gaze, not intensify it
-  base *= (1 - orbexFragments.value * 0.05);
+  base *= (1 + orbexFragments.value * 0.05);
 
   return Math.max(1, base);
 }
@@ -326,7 +322,6 @@ function endGazeEvent(survived: boolean): void {
       health.value = 50;
       will.value = maxWill.value;
       addLog('You awaken, but a fragment is lost...', true);
-      transition({ type: 'REVIVE_AFTER_GAZE' });   // <-- NEW: allows revival from gameOver
 
       // Kalgoth’s cruel delight
       getKalgothAction(

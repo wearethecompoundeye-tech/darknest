@@ -4,7 +4,8 @@ export async function askOllama(messages: { role: string; content: string }[]): 
   return "I hear you, Acolyte. The shadows listen.";
 }
 
-export function narrateEvent(event: string): string {
+export async function narrateEvent(event: string): Promise<string> {
+  // Returns a Promise to match expected .then() usage in minigames
   return "Something stirs in the Undercrypt...";
 }
 
